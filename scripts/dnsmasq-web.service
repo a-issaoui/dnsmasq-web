@@ -23,5 +23,18 @@ Environment=BACKUP_DIR=/var/backups/dnsmasq-web
 Restart=on-failure
 RestartSec=3
 
+# ── Sandboxing ───────────────────────────────────────────────────────
+# Needs root for /etc/dnsmasq.conf writes + systemctl, but everything
+# below is free hardening that doesn't get in the way of either.
+PrivateTmp=yes
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+SystemCallArchitectures=native
+
 [Install]
 WantedBy=multi-user.target

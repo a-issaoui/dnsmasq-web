@@ -24,7 +24,8 @@ if [[ "${1:-}" == "uninstall" ]]; then
     systemctl daemon-reload
     rm -rf "$INSTALL_DIR"
     echo "✓ uninstalled (backups in /var/backups/dnsmasq-web were kept)"
-    if grep -qE '^\s*nameserver\s+127\.0\.0\.1' /etc/resolv.conf 2>/dev/null; then
+    if grep -qE '^\s*nameserver\s+127\.0\.0\.1' /etc/resolv.conf 2>/dev/null \
+        || [[ -f /etc/systemd/resolved.conf.d/dnsmasq-web.conf ]]; then
         echo "ℹ this machine still resolves through dnsmasq (the console is gone, dnsmasq is not)."
         echo "  To undo the interception too: sudo bash $REPO_DIR/scripts/dnsmasq-manager.sh stop"
     fi
@@ -39,7 +40,9 @@ command -v dnsmasq >/dev/null || echo "⚠ dnsmasq not found — install it firs
 if ! command -v dnscrypt-proxy >/dev/null; then
     echo "→ installing dnscrypt-proxy (for encrypted upstream DNS)…"
     if command -v dnf >/dev/null; then dnf install -y -q dnscrypt-proxy 2>/dev/null || true
-    elif command -v apt-get >/dev/null; then apt-get install -y -q dnscrypt-proxy 2>/dev/null || true
+    elif command -v apt-get >/dev/null; then
+        apt-get update -q 2>/dev/null || true
+        DEBIAN_FRONTEND=noninteractive apt-get install -y -q dnscrypt-proxy 2>/dev/null || true
     elif command -v pacman >/dev/null; then pacman -S --noconfirm dnscrypt-proxy 2>/dev/null || true
     fi
     command -v dnscrypt-proxy >/dev/null \
@@ -64,19 +67,32 @@ fi
 echo "→ installing to $INSTALL_DIR…"
 mkdir -p "$INSTALL_DIR"
 NEED_RESTART=0
-if ! cmp -s "$REPO_DIR/dnsmasq-web" "$INSTALL_DIR/dnsmasq-web" 2>/dev/null; then
+if [[ -f "$INSTALL_DIR/dnsmasq-web" ]] && ! cmp -s "$REPO_DIR/dnsmasq-web" "$INSTALL_DIR/dnsmasq-web"; then
     NEED_RESTART=1   # binary changed → the running service must be restarted
 fi
 install -m 0755 "$REPO_DIR/dnsmasq-web" "$INSTALL_DIR/dnsmasq-web.new"
 mv -f "$INSTALL_DIR/dnsmasq-web.new" "$INSTALL_DIR/dnsmasq-web"   # atomic swap while running
-cp -r  "$REPO_DIR/templates" "$REPO_DIR/static" "$INSTALL_DIR/"
+# mirror assets exactly so files deleted upstream don't linger (and stay servable)
+if command -v rsync >/dev/null; then
+    rsync -a --delete "$REPO_DIR/templates/" "$INSTALL_DIR/templates/"
+    rsync -a --delete "$REPO_DIR/static/"    "$INSTALL_DIR/static/"
+else
+    rm -rf "$INSTALL_DIR/templates" "$INSTALL_DIR/static"
+    cp -r "$REPO_DIR/templates" "$REPO_DIR/static" "$INSTALL_DIR/"
+fi
 mkdir -p "$INSTALL_DIR/scripts"
 install -m 0755 "$REPO_DIR/scripts/dnsmasq-manager.sh" "$INSTALL_DIR/scripts/"
 [[ -f "$REPO_DIR/README.md" ]] && cp "$REPO_DIR/README.md" "$INSTALL_DIR/"
 
 # ── Service ──────────────────────────────────────────────────────────
-echo "→ registering systemd service…"
-cp "$REPO_DIR/scripts/dnsmasq-web.service" "$UNIT"
+# Never clobber a unit the user has edited (HOST/PORT/paths live there).
+if [[ ! -f "$UNIT" ]]; then
+    echo "→ registering systemd service…"
+    cp "$REPO_DIR/scripts/dnsmasq-web.service" "$UNIT"
+elif ! cmp -s "$REPO_DIR/scripts/dnsmasq-web.service" "$UNIT"; then
+    echo "ℹ keeping your existing $UNIT (it differs from the shipped unit)"
+    echo "  compare with: diff $UNIT $REPO_DIR/scripts/dnsmasq-web.service"
+fi
 systemctl daemon-reload
 systemctl enable --now dnsmasq-web
 if [[ "$NEED_RESTART" == 1 ]] && systemctl is-active --quiet dnsmasq-web; then
@@ -104,7 +120,8 @@ fi
 # machine's DNS through dnsmasq (persists across reboots; reversible
 # with: sudo bash /opt/dnsmasq-web/scripts/dnsmasq-manager.sh stop).
 INTERCEPT="${1:-}"
-if grep -qE '^\s*nameserver\s+127\.0\.0\.1' /etc/resolv.conf 2>/dev/null; then
+if grep -qE '^\s*nameserver\s+127\.0\.0\.1' /etc/resolv.conf 2>/dev/null \
+    || [[ -f /etc/systemd/resolved.conf.d/dnsmasq-web.conf ]]; then
     echo "✓ this machine already resolves through dnsmasq"
 elif [[ "$INTERCEPT" == "--intercept" ]]; then
     bash "$INSTALL_DIR/scripts/dnsmasq-manager.sh" start

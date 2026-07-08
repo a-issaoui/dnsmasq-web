@@ -1,8 +1,21 @@
 #!/usr/bin/env bash
+# dnsmasq-manager — service control + local DNS interception for dnsmasq-web.
+#
+#   start    start dnsmasq + route this machine's DNS through it
+#   stop     stop dnsmasq + restore the machine's original DNS
+#   restart  restart the dnsmasq service (DNS routing untouched)
+#   reload   SIGHUP dnsmasq (re-reads hosts/leases, NOT dnsmasq.conf)
+#   status   show service + resolver state
 
-set -e
+set -euo pipefail
+
+if [[ $EUID -ne 0 ]]; then
+    echo "✗ run as root:  sudo $0 ${1:-}" >&2
+    exit 1
+fi
 
 BACKUP_FILE="/etc/resolv.conf.dnsmasq.backup"
+RESOLVED_DROPIN="/etc/systemd/resolved.conf.d/dnsmasq-web.conf"
 
 detect_manager() {
     if systemctl is-active --quiet NetworkManager; then
@@ -14,17 +27,15 @@ detect_manager() {
     fi
 }
 
+# First active connection whose device is a real interface (field-exact match,
+# so devices like wlo1/eno1 that merely contain "lo" are not dropped).
 get_active_connection() {
-    nmcli -t -f NAME,DEVICE connection show --active 2>/dev/null | grep -v lo | head -n1
+    nmcli -t -f NAME,DEVICE connection show --active 2>/dev/null \
+        | awk -F: '$2 != "lo" && $2 != ""' | head -n1
 }
 
-get_connection_name() {
-    echo "$1" | cut -d: -f1
-}
-
-get_connection_device() {
-    echo "$1" | cut -d: -f2
-}
+get_connection_name()   { echo "$1" | cut -d: -f1; }
+get_connection_device() { echo "$1" | cut -d: -f2; }
 
 backup_resolv() {
     if [ ! -f "$BACKUP_FILE" ]; then
@@ -34,7 +45,9 @@ backup_resolv() {
 
 restore_resolv() {
     if [ -f "$BACKUP_FILE" ]; then
-        cp "$BACKUP_FILE" /etc/resolv.conf
+        # --remove-destination: /etc/resolv.conf may be a symlink (resolved);
+        # replace the link itself instead of writing through it
+        cp --remove-destination "$BACKUP_FILE" /etc/resolv.conf
         rm -f "$BACKUP_FILE"
     fi
 }
@@ -47,30 +60,35 @@ start_dnsmasq() {
     MANAGER=$(detect_manager)
     echo "Detected DNS manager: $MANAGER"
 
-    backup_resolv
-
     if [ "$MANAGER" = "NetworkManager" ]; then
         ACTIVE=$(get_active_connection)
         CONN=$(get_connection_name "$ACTIVE")
         DEV=$(get_connection_device "$ACTIVE")
-        if [ -n "$CONN" ]; then
-            nmcli connection modify "$CONN" ipv4.dns "127.0.0.1"
-            nmcli connection modify "$CONN" ipv4.ignore-auto-dns yes
-            nmcli connection modify "$CONN" ipv6.ignore-auto-dns yes
-            # Use device reapply to avoid dropping the network connection
-            if [ -n "$DEV" ]; then
-                nmcli device reapply "$DEV" 2>/dev/null || nmcli connection up "$CONN"
-            else
-                nmcli connection up "$CONN"
-            fi
+        if [ -z "$CONN" ]; then
+            echo "✗ no active NetworkManager connection found — nothing changed" >&2
+            exit 1
+        fi
+        backup_resolv
+        nmcli connection modify "$CONN" ipv4.dns "127.0.0.1"
+        nmcli connection modify "$CONN" ipv4.ignore-auto-dns yes
+        nmcli connection modify "$CONN" ipv6.ignore-auto-dns yes
+        # Use device reapply to avoid dropping the network connection
+        if [ -n "$DEV" ]; then
+            nmcli device reapply "$DEV" 2>/dev/null || nmcli connection up "$CONN"
+        else
+            nmcli connection up "$CONN"
         fi
 
     elif [ "$MANAGER" = "systemd-resolved" ]; then
-        resolvectl dns lo 127.0.0.1 || true
+        # Persistent drop-in — runtime `resolvectl dns` does not survive a
+        # resolved restart. Domains=~. routes ALL queries to dnsmasq.
+        mkdir -p "$(dirname "$RESOLVED_DROPIN")"
+        printf '[Resolve]\nDNS=127.0.0.1\nDomains=~.\n' > "$RESOLVED_DROPIN"
         systemctl restart systemd-resolved
 
     else
         echo "⚙️ Using manual resolv.conf mode"
+        backup_resolv
         echo "nameserver 127.0.0.1" | tee /etc/resolv.conf > /dev/null
     fi
 
@@ -83,9 +101,7 @@ stop_dnsmasq() {
     MANAGER=$(detect_manager)
     echo "Detected DNS manager: $MANAGER"
 
-    # Disable and stop dnsmasq first
-    systemctl disable --now dnsmasq 2>/dev/null || true
-
+    # Restore the machine's resolver first, then stop the daemon it pointed at.
     if [ "$MANAGER" = "NetworkManager" ]; then
         ACTIVE=$(get_active_connection)
         CONN=$(get_connection_name "$ACTIVE")
@@ -101,17 +117,19 @@ stop_dnsmasq() {
                 nmcli connection up "$CONN"
             fi
         fi
+        rm -f "$BACKUP_FILE"   # NM regenerated resolv.conf; stale backup is now wrong
 
     elif [ "$MANAGER" = "systemd-resolved" ]; then
+        rm -f "$RESOLVED_DROPIN"
         systemctl restart systemd-resolved
 
     else
         restore_resolv
     fi
 
-    restore_resolv
+    systemctl stop dnsmasq
 
-    echo "✅ DNS restored to original state"
+    echo "✅ dnsmasq stopped and DNS restored (still enabled at boot — use 'systemctl disable dnsmasq' to change that)"
 }
 
 reload_dnsmasq() {
@@ -145,10 +163,14 @@ status_dns() {
     cat /etc/resolv.conf
     echo ""
     echo "Test query:"
-    dig +short google.com || true
+    if command -v dig >/dev/null; then
+        dig +short google.com || true
+    else
+        getent hosts google.com || true
+    fi
 }
 
-case "$1" in
+case "${1:-}" in
     start)
         start_dnsmasq
         ;;
