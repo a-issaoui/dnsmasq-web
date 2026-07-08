@@ -298,8 +298,13 @@ dnsmasq-web edits a root-owned system service — treat it like you'd treat
   ```ini
   # /etc/systemd/system/dnsmasq-web.service  →  [Service]
   Environment=AUTH_PASSWORD=your-password
-  Environment=API_TOKEN=$(openssl rand -hex 32)   # paste the value, not the command
+  Environment=API_TOKEN=your-random-token        # e.g. output of: openssl rand -hex 32
   ```
+
+  The server keeps only SHA-256 digests in memory — nothing is written to disk, and a
+  restart simply logs everyone out. Unit files are world-readable, so on a **shared**
+  machine put the two lines in a root-only `/etc/dnsmasq-web.env` (`chmod 600`) and use
+  `EnvironmentFile=/etc/dnsmasq-web.env` instead (the shipped unit has it commented).
 
 - Auth runs over plain HTTP, so for anything beyond localhost put TLS in front. For LAN
   access a reverse proxy also works as the auth layer if you prefer, e.g. Caddy:

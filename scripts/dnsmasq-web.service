@@ -24,8 +24,15 @@ Environment=BACKUP_DIR=/var/backups/dnsmasq-web
 # set API_TOKEN so non-browser clients (the MCP server, curl) can use
 # `Authorization: Bearer $API_TOKEN`. Enable BOTH if an AI agent should
 # keep working after auth is turned on.
+#
+# NOTE: unit files are world-readable (644). On a single-admin box that's
+# fine; on a shared machine put the secrets in a root-only file instead:
+#   printf 'AUTH_PASSWORD=…\nAPI_TOKEN=…\n' > /etc/dnsmasq-web.env
+#   chmod 600 /etc/dnsmasq-web.env
+# and uncomment EnvironmentFile below rather than the Environment lines.
 #Environment=AUTH_PASSWORD=change-me
 #Environment=API_TOKEN=generate-a-long-random-string
+#EnvironmentFile=/etc/dnsmasq-web.env
 
 Restart=on-failure
 RestartSec=3
