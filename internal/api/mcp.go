@@ -98,19 +98,28 @@ func (m *mcpTracker) snapshot() mcpStatus {
 }
 
 // isMCPWrite reports whether an MCP-originated request would mutate state.
-// Mutating = POST/PUT/DELETE, except the non-mutating validate endpoint and
-// the MCP control plane itself (which is browser-origin anyway).
+// Mutating = POST/PUT/DELETE, except the non-mutating validate endpoint.
 func isMCPWrite(r *http.Request) bool {
 	switch r.Method {
 	case http.MethodPost, http.MethodPut, http.MethodDelete:
 	default:
 		return false
 	}
-	p := r.URL.Path
-	if p == "/api/conf/validate" || strings.HasPrefix(p, "/api/mcp/") {
+	if r.URL.Path == "/api/conf/validate" {
 		return false
 	}
-	return strings.HasPrefix(p, "/api/")
+	return strings.HasPrefix(r.URL.Path, "/api/")
+}
+
+// isMCPControlPlane reports whether the request mutates the MCP control plane
+// (the write kill-switch). Agents may never do this — even in writable mode —
+// otherwise a read-only agent could simply flip its own switch back on.
+func isMCPControlPlane(r *http.Request) bool {
+	switch r.Method {
+	case http.MethodPost, http.MethodPut, http.MethodDelete:
+		return strings.HasPrefix(r.URL.Path, "/api/mcp/")
+	}
+	return false
 }
 
 // ─── HTTP handlers ──────────────────────────────────────────────────────────

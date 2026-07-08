@@ -158,14 +158,22 @@ func (s *Server) withMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 
 		// MCP-originated requests carry X-MCP-Client. Track them for the MCP
-		// page, and enforce the read-only kill-switch on writes.
+		// page, and enforce the read-only kill-switch on writes. The switch
+		// itself is operator-only: an agent can never toggle it.
 		if client := r.Header.Get("X-MCP-Client"); client != "" {
-			blocked := isMCPWrite(r) && !s.mcp.writesAllowed()
+			control := isMCPControlPlane(r)
+			blocked := control || (isMCPWrite(r) && !s.mcp.writesAllowed())
 			s.mcp.record(client, r.Method, r.URL.Path, blocked)
-			s.hub.Broadcast("mcp", s.mcp.snapshot())
+			if s.hub.ClientCount() > 0 {
+				s.hub.Broadcast("mcp", s.mcp.snapshot())
+			}
 			if blocked {
-				log.Printf("MCP %s %s — BLOCKED (read-only)", r.Method, r.URL.Path)
-				jsonErr(w, 403, "MCP writes are disabled from the dnsmasq-web console (read-only mode). Re-enable on the MCP page to allow changes.")
+				msg := "MCP writes are disabled from the dnsmasq-web console (read-only mode). Re-enable on the MCP page to allow changes."
+				if control {
+					msg = "The MCP write kill-switch is operator-only — change it from the dnsmasq-web console, not through the agent."
+				}
+				log.Printf("MCP %s %s — BLOCKED", r.Method, r.URL.Path)
+				jsonErr(w, 403, msg)
 				return
 			}
 		}
@@ -694,6 +702,8 @@ func (s *Server) apiGetBackups(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) apiCreateBackup(w http.ResponseWriter, r *http.Request) {
+	s.confMu.Lock()
+	defer s.confMu.Unlock()
 	if err := s.writer.CreateBackup(); err != nil {
 		jsonErr(w, 500, err.Error())
 		return

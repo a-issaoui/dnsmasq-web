@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"dnsmasq-web/internal/api"
 )
@@ -34,17 +35,24 @@ func main() {
 
 	handler := srv.SetupRoutes()
 	httpSrv := &http.Server{
-		Addr:    conf.Host + ":" + conf.Port,
-		Handler: handler,
+		Addr:              conf.Host + ":" + conf.Port,
+		Handler:           handler,
+		ReadHeaderTimeout: 10 * time.Second, // no Read/WriteTimeout: SSE streams are long-lived
 	}
 
-	// Graceful shutdown
+	// Graceful shutdown: let in-flight requests finish, but don't wait on
+	// open SSE streams for more than a couple of seconds.
 	go func() {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 		<-c
 		fmt.Println("\nShutting down...")
-		httpSrv.Close()
+		cancel() // stop background producers (journalctl follower, watchers)
+		sctx, scancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer scancel()
+		if err := httpSrv.Shutdown(sctx); err != nil {
+			httpSrv.Close()
+		}
 	}()
 
 	host := conf.Host
