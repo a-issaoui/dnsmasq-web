@@ -1127,6 +1127,22 @@
     return null;
   }
 
+  // The empty state should tell the truth: log-queries off is one cause,
+  // but "nothing points at dnsmasq" is the other common one.
+  function updateActivityEmpty() {
+    const empty = $('#activity-empty');
+    if (!empty || !S.conf) return;
+    if (activityCount > 0) { empty.remove(); return; }
+    if (confScalar('log-queries') === null) {
+      empty.innerHTML = `<h3>Query logging is off</h3>
+        <p>Enable <b>log-queries</b> in <a href="/settings">Settings → Logging</a> to see the live DNS stream.</p>`;
+    } else {
+      empty.innerHTML = `<h3>Query logging is on — no DNS traffic yet</h3>
+        <p>dnsmasq isn't receiving queries. Point clients (or this machine's resolver) at it,
+        or try the <b>query tester</b> above — its lookups appear here instantly.</p>`;
+    }
+  }
+
   const activityIcons = { query: '?', forwarded: '→', reply: '✓', cached: '⚡', config: '⚙', hosts: '≡', 'dhcp-lease': '⌂' };
   let activityCount = 0;
   function appendActivity(ev, kind) {
@@ -1671,12 +1687,14 @@
     switch (S.page) {
       case 'index':
         renderDashboard(); initLookup();
-        // backfill the live activity feed with recent journal history
-        api('GET', '/api/service/logs?lines=120').then(d => {
+        // backfill the live activity feed with recent journal history (deep
+        // enough that restart boilerplate doesn't crowd out real traffic)
+        api('GET', '/api/service/logs?lines=600').then(d => {
           (d.logs || []).forEach(raw => {
             const ev = parseJournal(raw);
             if (ev) appendActivity(ev, ev.stream === 'dhcp' ? 'dhcp' : 'dns');
           });
+          updateActivityEmpty();
         }).catch(() => { });
         break;
       case 'dhcp':
