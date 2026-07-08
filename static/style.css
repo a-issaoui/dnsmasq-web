@@ -361,7 +361,14 @@ a:hover { text-decoration: underline; }
 .card.fill > .card-body.scroll-y { display: block; overflow-y: auto; }
 .card.fill .tbl-wrap { flex: 1; min-height: 200px; overflow: auto; }
 .card.fill .log-container { flex: 1; min-height: 220px; height: auto; }
-.card.fill #lease-table { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.card.fill #lease-table, .card.fill #recent-leases { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.card.fill .activity-feed { flex: 1; min-height: 220px; height: auto; }
+/* Dashboard bottom row: grid rows size to content, so give the feed a
+   viewport-relative height — it fills the screen once scrolled into view
+   and the leases card stretches to match, scrolling internally. */
+.grid-2.fill-row > .card { min-height: 0; margin-bottom: 0; }
+.grid-2.fill-row .activity-feed { flex: none; height: calc(100vh - 250px); min-height: 320px; }
+.grid-2.fill-row #recent-leases .tbl-wrap { flex: 1; min-height: 0; overflow: auto; }
 .card.fill #line-explorer { flex: 1; min-height: 200px; overflow-y: auto; }
 .card.fill .editor-wrap { flex: 1; min-height: 0; display: flex; }
 .card.fill .raw-editor { flex: 1; height: auto; min-height: 260px; resize: none; }

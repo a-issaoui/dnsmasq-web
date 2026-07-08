@@ -68,14 +68,14 @@ on every save.
 
 | Page | What you get |
 |------|--------------|
-| **📊 Dashboard** | Live service state & uptime, start/stop/restart/reload controls, config summary, a DNS **query tester** that resolves through your local dnsmasq, a live activity feed of queries & DHCP handshakes, and recent leases |
-| **🌐 DNS** | **Encrypted upstream (DoH)** — one-click dnscrypt-proxy integration with provider choice (Cloudflare / Quad9 / Google) and live status · upstream servers & **conditional forwarding**, `rev-server`, resolv options · every record type: `address` (wildcard/blocking), `host-record`, `cname`, `srv-host`, `txt-record`, `ptr-record`, `mx-host`, `naptr-record`, `caa-record`, raw `dns-rr`, `interface-name` · local domains & extra hosts files · cache size and every TTL knob · **DNSSEC** with trust anchors · rebind protection & filtering (`bogus-nxdomain`, `ignore-address`, `filter-AAAA`, …) · **ipset / nftset** |
+| **📊 Dashboard** | Live service state & uptime, start/stop/restart/reload controls, config summary, a DNS **query tester** that resolves through your local dnsmasq, a full-height live activity feed of queries & DHCP handshakes, and recent leases |
+| **🌐 DNS** | **Encrypted upstream (DoH)** — one-click dnscrypt-proxy integration with provider choice (Cloudflare / Quad9 / Google) and live status · **Resolver health** — passive DoH-auto-upgrade warnings plus a one-click *"is my browser using this resolver?"* bypass test with a tri-state verdict · upstream servers & **conditional forwarding**, `rev-server`, resolv options · every record type: `address` (wildcard/blocking), `host-record`, `cname`, `srv-host`, `txt-record`, `ptr-record`, `mx-host`, `naptr-record`, `caa-record`, raw `dns-rr`, `interface-name` · local domains & extra hosts files · cache size and every TTL knob · **DNSSEC** with trust anchors · rebind protection & filtering (`bogus-nxdomain`, `ignore-address`, `filter-AAAA`, …) · **ipset / nftset** |
 | **📡 DHCP** | Multiple ranges with tags, modes (`static`, `proxy`) and IPv6/RA modes (`slaac`, `ra-names`, …) · static hosts with **one-click "Reserve" from a live lease** · per-tag DHCP options · boot files, PXE menus & arch matching · tag engine (`dhcp-mac`, vendor/user class, option matching, `tag-if`) · relay · a **live lease table** that diffs row-by-row as devices join |
 | **🚀 TFTP** | The complete built-in TFTP server: root(s), secure mode, ports, limits, netboot guide |
 | **🔌 Network** | Live host interfaces with one-click *listen on this interface*, listen addresses, bind modes, DNS port |
 | **⚙️ Settings** | Query/DHCP logging, log facility, run-as user/group, config includes (`conf-file`, `conf-dir`), *start at boot* toggle |
 | **📝 Config File** | Raw editor with syntax **Validate** button, revision-guarded saves (no lost updates), and a **line explorer** that labels every known directive, highlights unmanaged ones, and lets you edit or delete any single line |
-| **📜 Logs** | Realtime journal follow (`journalctl -f` over SSE) with severity colouring, plus a parsed **DNS query stream** — pre-filled from history so you see the action instantly |
+| **📜 Logs** | Realtime journal follow (`journalctl -f` over SSE) with severity colouring, plus a parsed **DNS query stream** — pre-filled from history so you see the action instantly. All log and table views (Logs, live leases, config editor/explorer, backups) stretch to the **full viewport height** and scroll internally with sticky headers |
 | **💾 Backups** | Automatic snapshot before *every* write · manual snapshots · view any backup, see whether it differs from the current config, restore or delete |
 
 ## How it stays safe
@@ -347,6 +347,9 @@ GET    /api/service/logs?lines=N  last N journal lines (≤2000)
 GET    /api/dhcp/leases           parsed leases (IPv4 + IPv6, client-ids, expiry)
 GET    /api/interfaces            host NICs with state and addresses
 GET    /api/lookup?name=&type=    resolve via the local dnsmasq (A AAAA CNAME TXT MX SRV NS PTR)
+
+GET    /api/resolver-check       resolv.conf state + browser DoH-auto-upgrade risk flags
+GET    /api/resolver-check/verify?name=&control=[&fire=1]   browser-bypass marker verification
 
 GET    /api/backups               list (newest first)
 POST   /api/backups               create a snapshot now
