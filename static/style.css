@@ -535,28 +535,31 @@ a:hover { text-decoration: underline; }
 @media (max-width: 1020px) { .grid-2 { grid-template-columns: 1fr; } }
 
 /* Card-dense sections lay their directive cards out side by side instead of
-   one long stack; each card keeps its own height (align-items:start). */
-[data-sec="records"],
-[data-sec="dhcp-tags"],
-[data-sec="filtering"],
-[data-sec="sets"],
-[data-sec="dhcp-boot"] {
+   one long stack. Cards in the same row stretch to equal height; empty
+   states center vertically in the extra space. */
+:is([data-sec="records"], [data-sec="dhcp-tags"], [data-sec="filtering"], [data-sec="sets"], [data-sec="dhcp-boot"]) {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
 }
-[data-sec="records"] > .card,
-[data-sec="dhcp-tags"] > .card,
-[data-sec="filtering"] > .card,
-[data-sec="sets"] > .card,
-[data-sec="dhcp-boot"] > .card { margin-bottom: 0; }
+:is([data-sec="records"], [data-sec="dhcp-tags"], [data-sec="filtering"], [data-sec="sets"], [data-sec="dhcp-boot"]) > .card {
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+}
+:is([data-sec="records"], [data-sec="dhcp-tags"], [data-sec="filtering"], [data-sec="sets"], [data-sec="dhcp-boot"]) > .card > .card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+:is([data-sec="records"], [data-sec="dhcp-tags"], [data-sec="filtering"], [data-sec="sets"], [data-sec="dhcp-boot"]) > .card .empty {
+  margin: auto 0; /* vertical centering inside the stretched card */
+}
 @media (max-width: 1100px) {
-  [data-sec="records"],
-  [data-sec="dhcp-tags"],
-  [data-sec="filtering"],
-  [data-sec="sets"],
-  [data-sec="dhcp-boot"] { grid-template-columns: 1fr; }
+  :is([data-sec="records"], [data-sec="dhcp-tags"], [data-sec="filtering"], [data-sec="sets"], [data-sec="dhcp-boot"]) {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ═══ Tables ════════════════════════════════════════════════════════ */
