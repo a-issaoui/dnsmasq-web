@@ -38,12 +38,24 @@
     <div class="stat-value sk">—</div>
     <div class="stat-trend">&nbsp;</div>
   </div>
-  <a class="stat-card green" id="stat-mcp" href="/mcp">
-    <div class="stat-label">MCP</div>
-    <div class="stat-value sk">—</div>
-    <div class="stat-trend">AI control</div>
-  </a>
 </div>
+
+<a class="mcp-strip" id="stat-mcp" href="/mcp" aria-label="MCP integration — open the AI control page">
+  <span class="mcp-beacon idle" id="dash-mcp-beacon"><span class="mcp-beacon-dot"></span></span>
+  <div class="mcp-strip-main">
+    <div class="mcp-strip-title">MCP
+      <span class="mcp-strip-state" id="dash-mcp-state">Ready</span>
+      <span id="dash-mcp-access"></span>
+    </div>
+    <div class="mcp-strip-sub" id="dash-mcp-sub">AI agents drive dnsmasq through this console</div>
+  </div>
+  <div class="mcp-strip-stats">
+    <div class="mcp-strip-stat"><b id="dash-mcp-calls">—</b><span>calls</span></div>
+    <div class="mcp-strip-stat"><b id="dash-mcp-blocked">—</b><span>blocked</span></div>
+    <div class="mcp-strip-stat"><b id="dash-mcp-seen">—</b><span>last activity</span></div>
+  </div>
+  <span class="mcp-strip-open">Manage <span aria-hidden="true">→</span></span>
+</a>
 
 <div class="grid-2">
   <div class="card">

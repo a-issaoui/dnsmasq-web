@@ -21,6 +21,11 @@
     setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 350); }, dur);
   }
 
+  // Set when THIS browser session changes the config; auto-apply only ever
+  // restarts dnsmasq for our own edits, never for changes found on page load
+  // or made out-of-band (SSH edits, other tabs, agents).
+  let sessionDirty = false;
+
   async function api(method, url, body) {
     let r;
     try {
@@ -39,6 +44,7 @@
       err.status = r.status;
       throw err;
     }
+    if (method !== 'GET' && /^\/api\/(conf(?!\/validate)|backups\/restore)/.test(url)) sessionDirty = true;
     return data;
   }
 
@@ -870,9 +876,10 @@
     }
     if (bar) {
       if (!st.stale_config) {
+        sessionDirty = false;
         sessionStorage.removeItem('applyDismissed');
         cancelAutoApply();
-      } else if (autoApplyOn()) {
+      } else if (autoApplyOn() && sessionDirty) {
         scheduleAutoApply();
       }
       bar.hidden = !st.stale_config || sessionStorage.getItem('applyDismissed') === '1';
@@ -1918,14 +1925,28 @@
     }
   }
 
-  // Dashboard MCP tile — always green/Ready when the console is up.
+  // Dashboard MCP strip — Ready is the resting state whenever the console is up.
   function renderMcpStat() {
     const el = $('#stat-mcp'); if (!el) return;
+    const set = (id, v) => { const n = $('#' + id); if (n) n.textContent = v; };
     const st = S.mcp;
-    if (!st) { statSet('stat-mcp', 'Ready', 'integration live', 'green'); return; }
-    const val = st.connected ? 'Active' : 'Ready';
-    const trend = `${st.total_calls || 0} call${st.total_calls === 1 ? '' : 's'} · ${st.writes_allowed ? 'writable' : 'read-only'}`;
-    statSet('stat-mcp', val, trend, st.writes_allowed ? 'green' : 'orange');
+    if (!st) { set('dash-mcp-state', 'Ready'); return; }
+    const active = !!st.connected;
+    const beacon = $('#dash-mcp-beacon');
+    if (beacon) beacon.className = 'mcp-beacon ' + (active ? 'active' : 'idle');
+    set('dash-mcp-state', active ? 'Active' : 'Ready');
+    set('dash-mcp-sub',
+      active ? 'An agent is using it right now'
+        : st.seen_ever ? `Idle — last active ${mcpAgo(st.last_seen)}`
+          : 'AI agents drive dnsmasq through this console');
+    set('dash-mcp-calls', st.total_calls ?? 0);
+    set('dash-mcp-blocked', st.blocked_calls ?? 0);
+    set('dash-mcp-seen', st.seen_ever ? mcpAgo(st.last_seen) : 'never');
+    const acc = $('#dash-mcp-access');
+    if (acc) acc.innerHTML = st.writes_allowed
+      ? '<span class="badge badge-green">writable</span>'
+      : '<span class="badge badge-yellow">read-only</span>';
+    el.classList.toggle('readonly', !st.writes_allowed);
   }
 
   function initMCP() {
