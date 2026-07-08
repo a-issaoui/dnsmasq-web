@@ -973,6 +973,7 @@
       if (S.page === 'config') renderConfigPage();
       if (S.page === 'network') renderNetworkExtras();
       if (S.page === 'logs') renderQueryNote();
+      if (S.page === 'dns') renderEncDNS();
     });
   }
 
@@ -1247,6 +1248,83 @@
       prev = tr;
     }
     existing.forEach((tr, key) => { if (!seen.has(key)) tr.remove(); });
+  }
+
+  /* ── encrypted upstream (DNS page) ─────────────────────────────────── */
+  async function renderEncDNS() {
+    const box = $('#encdns');
+    if (!box) return;
+    let d;
+    try { d = await api('GET', '/api/encdns'); }
+    catch (e) { box.innerHTML = ''; return; }
+    const st = d.status, providers = d.providers;
+    const encrypted = st.dnsmasq_encrypted && st.active && st.answering;
+
+    const chip = (ok, okTxt, badTxt, warn) =>
+      `<span class="badge ${ok ? 'badge-green' : warn ? 'badge-yellow' : 'badge-red'}">${ok ? okTxt : badTxt}</span>`;
+
+    box.innerHTML = `
+      <div class="card encdns-card ${encrypted ? 'enc-on' : ''}">
+        <div class="card-header">
+          <div class="card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+              <rect x="3" y="11" width="18" height="11" rx="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+            Encrypted upstream
+            ${encrypted
+        ? `<span class="badge badge-green">● ${esc(st.protocol || 'DoH')} active</span>`
+        : '<span class="badge badge-gray">plaintext</span>'}
+          </div>
+          <span class="card-hint">dnsmasq → dnscrypt-proxy (127.0.0.1#5053) → HTTPS</span>
+        </div>
+        <div class="card-body">
+          <p class="enc-desc">Routes internet DNS through a local DoH forwarder so your ISP can't read or
+            tamper with queries. Local records, <code>.lan</code> forwarding and caching stay in dnsmasq.</p>
+          <div class="enc-row">
+            <div class="enc-status">
+              <div class="enc-stat"><span class="enc-k">forwarder</span>
+                ${!st.installed ? chip(false, '', 'not installed')
+        : chip(st.active, 'running', 'stopped', true)}</div>
+              <div class="enc-stat"><span class="enc-k">resolving</span>
+                ${st.active ? chip(st.answering, 'yes', 'no') : '<span class="badge badge-gray">—</span>'}</div>
+              <div class="enc-stat"><span class="enc-k">dnsmasq</span>
+                ${chip(st.dnsmasq_encrypted, 'encrypted route', 'plain upstreams', true)}</div>
+            </div>
+            <div class="enc-controls">
+              <select class="form-select" id="enc-provider" ${st.dnsmasq_encrypted ? '' : ''}>
+                ${Object.entries(providers).map(([id, label]) =>
+          `<option value="${id}" ${id === (st.provider || 'cloudflare') ? 'selected' : ''}>${esc(label)}</option>`).join('')}
+              </select>
+              <button class="btn ${st.dnsmasq_encrypted ? 'btn-danger' : 'btn-primary'}" id="enc-toggle"
+                ${!st.installed ? 'disabled title="install dnscrypt-proxy first"' : ''}>
+                ${st.dnsmasq_encrypted ? 'Disable' : 'Enable encryption'}
+              </button>
+            </div>
+          </div>
+          ${st.detail ? `<div class="form-hint">${esc(st.detail)} — <code>sudo dnf install dnscrypt-proxy</code></div>` : ''}
+        </div>
+      </div>`;
+
+    $('#enc-toggle', box).addEventListener('click', b => guarded(b, async () => {
+      const enable = !st.dnsmasq_encrypted;
+      const provider = $('#enc-provider', box).value;
+      b.innerHTML = '<span class="spinner"></span> ' + (enable ? 'Enabling…' : 'Disabling…');
+      const d2 = await api('PUT', '/api/encdns', { enabled: enable, provider });
+      toast(d2.message, 'success', 5000);
+      await loadConf();
+      renderAllSections();
+      renderEncDNS();
+    }));
+    // switching provider while encrypted re-applies immediately
+    $('#enc-provider', box).addEventListener('change', async e => {
+      if (!st.dnsmasq_encrypted) return;
+      try {
+        const d2 = await api('PUT', '/api/encdns', { enabled: true, provider: e.target.value });
+        toast(d2.message, 'success');
+        renderEncDNS();
+      } catch (err) { toast(err.message, 'error', 6000); renderEncDNS(); }
+    });
   }
 
   /* ── network page ──────────────────────────────────────────────────── */
@@ -1685,6 +1763,7 @@
     renderAllSections();
 
     switch (S.page) {
+      case 'dns': renderEncDNS(); break;
       case 'index':
         renderDashboard(); initLookup();
         // backfill the live activity feed with recent journal history (deep

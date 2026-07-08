@@ -33,6 +33,20 @@ fi
 
 command -v dnsmasq >/dev/null || echo "⚠ dnsmasq not found — install it first (config validation and service control need it)"
 
+# dnscrypt-proxy powers the optional encrypted-upstream (DoH) feature.
+# Best-effort install; the console's DNS → Upstream toggle configures and
+# enables it, so nothing is activated here.
+if ! command -v dnscrypt-proxy >/dev/null; then
+    echo "→ installing dnscrypt-proxy (for encrypted upstream DNS)…"
+    if command -v dnf >/dev/null; then dnf install -y -q dnscrypt-proxy 2>/dev/null || true
+    elif command -v apt-get >/dev/null; then apt-get install -y -q dnscrypt-proxy 2>/dev/null || true
+    elif command -v pacman >/dev/null; then pacman -S --noconfirm dnscrypt-proxy 2>/dev/null || true
+    fi
+    command -v dnscrypt-proxy >/dev/null \
+        && echo "  ✓ dnscrypt-proxy installed (enable it from DNS → Upstream in the console)" \
+        || echo "  ⚠ could not install dnscrypt-proxy — the encrypted-upstream toggle will stay disabled"
+fi
+
 # ── Build ────────────────────────────────────────────────────────────
 if command -v go >/dev/null; then
     echo "→ building…"

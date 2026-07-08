@@ -69,7 +69,7 @@ on every save.
 | Page | What you get |
 |------|--------------|
 | **📊 Dashboard** | Live service state & uptime, start/stop/restart/reload controls, config summary, a DNS **query tester** that resolves through your local dnsmasq, a live activity feed of queries & DHCP handshakes, and recent leases |
-| **🌐 DNS** | Upstream servers & **conditional forwarding**, `rev-server`, resolv options · every record type: `address` (wildcard/blocking), `host-record`, `cname`, `srv-host`, `txt-record`, `ptr-record`, `mx-host`, `naptr-record`, `caa-record`, raw `dns-rr`, `interface-name` · local domains & extra hosts files · cache size and every TTL knob · **DNSSEC** with trust anchors · rebind protection & filtering (`bogus-nxdomain`, `ignore-address`, `filter-AAAA`, …) · **ipset / nftset** |
+| **🌐 DNS** | **Encrypted upstream (DoH)** — one-click dnscrypt-proxy integration with provider choice (Cloudflare / Quad9 / Google) and live status · upstream servers & **conditional forwarding**, `rev-server`, resolv options · every record type: `address` (wildcard/blocking), `host-record`, `cname`, `srv-host`, `txt-record`, `ptr-record`, `mx-host`, `naptr-record`, `caa-record`, raw `dns-rr`, `interface-name` · local domains & extra hosts files · cache size and every TTL knob · **DNSSEC** with trust anchors · rebind protection & filtering (`bogus-nxdomain`, `ignore-address`, `filter-AAAA`, …) · **ipset / nftset** |
 | **📡 DHCP** | Multiple ranges with tags, modes (`static`, `proxy`) and IPv6/RA modes (`slaac`, `ra-names`, …) · static hosts with **one-click "Reserve" from a live lease** · per-tag DHCP options · boot files, PXE menus & arch matching · tag engine (`dhcp-mac`, vendor/user class, option matching, `tag-if`) · relay · a **live lease table** that diffs row-by-row as devices join |
 | **🚀 TFTP** | The complete built-in TFTP server: root(s), secure mode, ports, limits, netboot guide |
 | **🔌 Network** | Live host interfaces with one-click *listen on this interface*, listen addresses, bind modes, DNS port |
@@ -221,6 +221,31 @@ restart dnsmasq-web`):
 
 > 💡 **Tip:** for the live DNS query stream, enable **log-queries** under *Settings → Logging*
 > (use the value `extra` to also capture client addresses), then restart dnsmasq.
+
+## Encrypted upstream DNS (DoH)
+
+By default dnsmasq forwards to upstream resolvers in plaintext — your ISP can read and tamper
+with every query. The **Encrypted upstream** card on *DNS → Upstream* fixes that hop:
+
+```
+apps → dnsmasq (127.0.0.1:53, cache + local records) ──┬── .lan / rev-lookups → router (LAN, plain)
+                                                       └── everything else → dnscrypt-proxy
+                                                            (127.0.0.1:5053) ⇒ HTTPS/DoH ⇒ provider
+```
+
+- **Enable/disable with one click**; choose Cloudflare, Quad9 (malware-filtered) or Google DoH —
+  switching providers while enabled re-applies instantly.
+- The toggle rewrites only the *global* `server=` lines through the same validated + backed-up
+  pipeline as everything else. `no-resolv`, conditional `.lan` forwarding, `rev-server`,
+  `bind-interfaces`, caching and query logging are all preserved.
+- Live status chips show: forwarder running, actually resolving (real probe query), negotiated
+  protocol (from dnscrypt-proxy's own logs) and whether dnsmasq is routed through it.
+- dnscrypt-proxy runs as its own systemd service, enabled at boot while the feature is on and
+  fully disabled when you turn it off. The installer installs the package automatically
+  (dnf / apt / pacman) but never activates encryption without you.
+- dnscrypt-proxy's cache is turned off — dnsmasq remains the single cache layer.
+
+API: `GET /api/encdns` (status + providers), `PUT /api/encdns` `{enabled, provider}`.
 
 ## Remote access & security
 
