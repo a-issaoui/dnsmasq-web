@@ -707,6 +707,7 @@
     const cols = comp.fields.filter(f => f.type !== 'checkbox');
     const card = document.createElement('div');
     card.className = 'card';
+    card.dataset.key = d.key;
     card.innerHTML = `
       <div class="card-header">
         <div class="card-title">${esc(d.label)}<code class="key-chip">${esc(d.key)}</code></div>
@@ -755,6 +756,7 @@
   function renderOptionsCard(flags, scalars) {
     const card = document.createElement('div');
     card.className = 'card';
+    card.dataset.key = 'options';
     card.innerHTML = `<div class="card-header"><div class="card-title">Options</div>
       <span class="card-hint">applied instantly · restart to take effect</span></div>
       <div class="card-body"><div class="opt-grid"></div></div>`;
@@ -829,6 +831,21 @@
     multis.forEach(d => container.appendChild(renderMultiCard(d)));
     if (flags.length || scalars.length)
       container.appendChild(renderOptionsCard(flags, scalars));
+
+    // Grid balancing: wide tables always span both columns, and if an odd
+    // number of normal cards remains, the last one spans too — no ragged
+    // half-empty rows anywhere.
+    const WIDE = new Set(['dhcp-range', 'dhcp-host']);
+    const cards = [...container.children].filter(el => el.classList.contains('card'));
+    let normal = 0;
+    cards.forEach(c => {
+      if (WIDE.has(c.dataset.key)) c.classList.add('span2');
+      else normal++;
+    });
+    if (normal % 2 === 1) {
+      const last = [...cards].reverse().find(c => !c.classList.contains('span2'));
+      if (last) last.classList.add('span2');
+    }
   }
 
   function renderAllSections() {
