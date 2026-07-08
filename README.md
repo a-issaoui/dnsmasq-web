@@ -128,8 +128,24 @@ That single command:
 2. installs everything to **`/opt/dnsmasq-web/`**
 3. registers the **`dnsmasq-web.service`** systemd unit
 4. **enables it at boot** and starts it immediately
+5. **offers DNS interception** — routing this machine's own DNS through dnsmasq so you get
+   local caching and a live query stream (skip it if dnsmasq only serves other clients)
 
 then open **http://localhost:8053** 🎉
+
+Non-interactive installs can decide up front:
+
+```bash
+sudo ./scripts/install.sh --intercept      # also point this machine at dnsmasq
+sudo ./scripts/install.sh --no-intercept   # never ask
+```
+
+Interception persists across reboots (it's written into the NetworkManager connection
+profile) and is fully reversible:
+
+```bash
+sudo bash /opt/dnsmasq-web/scripts/dnsmasq-manager.sh stop   # restore original DNS
+```
 
 Manage it like any service:
 

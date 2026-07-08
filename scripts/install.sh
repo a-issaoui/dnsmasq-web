@@ -2,8 +2,10 @@
 # dnsmasq-web installer — builds the binary, installs to /opt/dnsmasq-web,
 # registers the systemd service and starts it at boot.
 #
-#   sudo ./scripts/install.sh            install (or update) + enable + start
-#   sudo ./scripts/install.sh uninstall  stop + disable + remove
+#   sudo ./scripts/install.sh                install (or update) + enable + start
+#   sudo ./scripts/install.sh --intercept    also route this machine's DNS through dnsmasq
+#   sudo ./scripts/install.sh --no-intercept never ask about DNS interception
+#   sudo ./scripts/install.sh uninstall      stop + disable + remove
 set -euo pipefail
 
 INSTALL_DIR=/opt/dnsmasq-web
@@ -22,6 +24,10 @@ if [[ "${1:-}" == "uninstall" ]]; then
     systemctl daemon-reload
     rm -rf "$INSTALL_DIR"
     echo "✓ uninstalled (backups in /var/backups/dnsmasq-web were kept)"
+    if grep -qE '^\s*nameserver\s+127\.0\.0\.1' /etc/resolv.conf 2>/dev/null; then
+        echo "ℹ this machine still resolves through dnsmasq (the console is gone, dnsmasq is not)."
+        echo "  To undo the interception too: sudo bash $REPO_DIR/scripts/dnsmasq-manager.sh stop"
+    fi
     exit 0
 fi
 
@@ -65,4 +71,28 @@ if systemctl is-active --quiet dnsmasq-web; then
 else
     echo "✗ service failed to start — check: journalctl -u dnsmasq-web -n 30" >&2
     exit 1
+fi
+
+# ── DNS interception (optional) ──────────────────────────────────────
+# Without this, dnsmasq only serves clients that are explicitly pointed
+# at it — this machine keeps using whatever resolver NetworkManager set,
+# and the live query stream stays empty. Interception routes the local
+# machine's DNS through dnsmasq (persists across reboots; reversible
+# with: sudo bash /opt/dnsmasq-web/scripts/dnsmasq-manager.sh stop).
+INTERCEPT="${1:-}"
+if grep -qE '^\s*nameserver\s+127\.0\.0\.1' /etc/resolv.conf 2>/dev/null; then
+    echo "✓ this machine already resolves through dnsmasq"
+elif [[ "$INTERCEPT" == "--intercept" ]]; then
+    bash "$INSTALL_DIR/scripts/dnsmasq-manager.sh" start
+elif [[ "$INTERCEPT" != "--no-intercept" && -t 0 ]]; then
+    echo ""
+    read -r -p "Route this machine's DNS through dnsmasq so you get caching and the live query stream? [y/N] " ans
+    if [[ "$ans" =~ ^[Yy]$ ]]; then
+        bash "$INSTALL_DIR/scripts/dnsmasq-manager.sh" start
+    else
+        echo "  skipped — enable later with: sudo bash $INSTALL_DIR/scripts/dnsmasq-manager.sh start"
+    fi
+else
+    echo "ℹ this machine does not resolve through dnsmasq — enable with:"
+    echo "  sudo bash $INSTALL_DIR/scripts/dnsmasq-manager.sh start"
 fi
