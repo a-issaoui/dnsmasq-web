@@ -126,6 +126,7 @@ func (s *Server) sendSnapshot(c *sseClient) {
 		}
 	}
 	push("status", s.currentStatus())
+	push("mcp", s.mcp.snapshot())
 	if leases, err := dnsmasq.ParseLeases(s.cfg.DnsmasqLeases); err == nil {
 		push("leases", leases)
 	}

@@ -968,7 +968,9 @@
       if (S.page === 'index') appendActivity(ev, 'dhcp');
     });
     es.addEventListener('mcp', e => {
-      if (S.page === 'mcp') renderMCP(JSON.parse(e.data));
+      S.mcp = JSON.parse(e.data);
+      if (S.page === 'mcp') renderMCP(S.mcp);
+      if (S.page === 'index') renderMcpStat();
     });
   }
 
@@ -1079,6 +1081,7 @@
     if (badge) badge.innerHTML = st.running ? '<span class="badge badge-green">Active</span>' : '<span class="badge badge-red">Inactive</span>';
     renderSvcActions();
     renderRecentLeases();
+    renderMcpStat();
   }
 
   function svcAction(action, label, confirmText) {
@@ -1864,22 +1867,30 @@
   async function renderMCP(data) {
     const st = data || await api('GET', '/api/mcp/status').catch(() => null);
     if (!st) return;
+    S.mcp = st;
 
-    const conn = $('#mcp-conn');
-    if (conn) {
-      conn.className = 'status-chip ' + (st.connected ? 'green' : 'gray');
-      const label = !st.seen_ever ? 'never connected' : (st.connected ? 'connected' : 'idle');
-      conn.innerHTML = `<span class="chip-dot"></span>${label}`;
-    }
+    // Honest status model: the integration is "Ready" whenever this console is
+    // up — it IS the API the MCP calls. "Active" means an agent called within
+    // the recent window. A stdio MCP is rarely mid-call, so we never show a
+    // scary "offline"; green Ready is the resting state.
+    const active = !!st.connected;
+    const beacon = $('#mcp-beacon');
+    if (beacon) beacon.className = 'mcp-beacon ' + (active ? 'active' : 'idle');
     const set = (id, v) => { const el = $('#' + id); if (el) el.textContent = v; };
+    set('mcp-state', active ? 'Active' : 'Ready');
+    set('mcp-substate',
+      active ? 'An agent is using it right now'
+        : st.seen_ever ? `Idle — last active ${mcpAgo(st.last_seen)}`
+          : 'Waiting for an agent to connect');
     set('mcp-client', st.client || 'dnsmasq-web-mcp');
-    set('mcp-state', !st.seen_ever ? 'Never connected' : (st.connected ? 'Active' : 'Idle'));
-    set('mcp-lastseen', mcpAgo(st.last_seen));
     set('mcp-total', st.total_calls ?? 0);
     set('mcp-blocked', st.blocked_calls ?? 0);
+    set('mcp-lastseen', st.seen_ever ? mcpAgo(st.last_seen) : 'never');
 
+    // write kill-switch
     const tog = $('#mcp-writes-toggle');
     if (tog && document.activeElement !== tog) tog.checked = !!st.writes_allowed;
+    set('mcp-writes-text', st.writes_allowed ? 'Writable' : 'Read-only');
     const badge = $('#mcp-writes-badge');
     if (badge) badge.innerHTML = st.writes_allowed
       ? '<span class="badge badge-green">writable</span>'
@@ -1887,25 +1898,34 @@
     const note = $('#mcp-writes-note');
     if (note) note.textContent = st.writes_allowed
       ? 'The agent can read and change dnsmasq. Every write is still validated with dnsmasq --test and auto-snapshotted first.'
-      : 'Read-only — the agent can inspect everything, but any write is rejected with 403 until you re-enable it here.';
+      : 'Read-only — the agent can inspect everything, but any write is rejected until you re-enable it here.';
 
+    // recent calls
     const box = $('#mcp-recent'), cnt = $('#mcp-recent-count');
     if (box) {
       const rec = st.recent || [];
-      if (!rec.length) {
-        box.innerHTML = '<div class="mcp-empty">No MCP calls yet — connect Claude Code and run a dnsmasq tool.</div>';
-      } else {
-        box.innerHTML = '<div class="mcp-calls">' + rec.map(c => {
+      box.innerHTML = rec.length
+        ? '<div class="mcp-calls">' + rec.map(c => {
           const m = (c.method || '').toLowerCase();
           const t = new Date(c.at).toLocaleTimeString('en-GB');
           return `<div class="mcp-call${c.blocked ? ' blocked' : ''}">`
             + `<span class="mcp-method ${esc(m)}">${esc(c.method)}</span>`
             + `<span class="mcp-path">${esc(c.path)}${c.blocked ? ' <span class="badge badge-red">blocked</span>' : ''}</span>`
             + `<span class="mcp-call-time">${t}</span></div>`;
-        }).join('') + '</div>';
-      }
+        }).join('') + '</div>'
+        : '<div class="mcp-empty">No MCP calls yet — connect Claude Code and run a dnsmasq tool.</div>';
       if (cnt) cnt.textContent = rec.length ? `${rec.length} recent` : '';
     }
+  }
+
+  // Dashboard MCP tile — always green/Ready when the console is up.
+  function renderMcpStat() {
+    const el = $('#stat-mcp'); if (!el) return;
+    const st = S.mcp;
+    if (!st) { statSet('stat-mcp', 'Ready', 'integration live', 'green'); return; }
+    const val = st.connected ? 'Active' : 'Ready';
+    const trend = `${st.total_calls || 0} call${st.total_calls === 1 ? '' : 's'} · ${st.writes_allowed ? 'writable' : 'read-only'}`;
+    statSet('stat-mcp', val, trend, st.writes_allowed ? 'green' : 'orange');
   }
 
   function initMCP() {
@@ -1981,6 +2001,7 @@
       case 'dns': renderEncDNS(); renderResolverCheck(); break;
       case 'index':
         renderDashboard(); initLookup();
+        api('GET', '/api/mcp/status').then(d => { S.mcp = d; renderMcpStat(); }).catch(() => { });
         // backfill the live activity feed with recent journal history (deep
         // enough that restart boilerplate doesn't crowd out real traffic)
         api('GET', '/api/service/logs?lines=600').then(d => {
