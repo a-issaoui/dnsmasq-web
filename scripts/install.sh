@@ -50,7 +50,9 @@ fi
 # ── Build ────────────────────────────────────────────────────────────
 if command -v go >/dev/null; then
     echo "→ building…"
-    (cd "$REPO_DIR" && go build -o dnsmasq-web .)
+    # -buildvcs=false keeps builds byte-identical across commits of the same
+    # source, so the binary-changed check only fires on real code changes
+    (cd "$REPO_DIR" && go build -buildvcs=false -o dnsmasq-web .)
 elif [[ ! -x "$REPO_DIR/dnsmasq-web" ]]; then
     echo "✗ Go toolchain not found and no prebuilt binary at $REPO_DIR/dnsmasq-web" >&2
     exit 1
