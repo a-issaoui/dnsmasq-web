@@ -973,7 +973,7 @@
       if (S.page === 'config') renderConfigPage();
       if (S.page === 'network') renderNetworkExtras();
       if (S.page === 'logs') renderQueryNote();
-      if (S.page === 'dns') renderEncDNS();
+      if (S.page === 'dns') { renderEncDNS(); renderResolverCheck(); }
     });
   }
 
@@ -1324,6 +1324,83 @@
         toast(d2.message, 'success');
         renderEncDNS();
       } catch (err) { toast(err.message, 'error', 6000); renderEncDNS(); }
+    });
+  }
+
+  /* ── resolver health / browser-bypass check (DNS page) ─────────────── */
+  async function renderResolverCheck() {
+    const box = $('#resolver-check');
+    if (!box) return;
+    let d;
+    try { d = await api('GET', '/api/resolver-check'); }
+    catch { box.innerHTML = ''; return; }
+
+    const nsList = (d.nameservers || []).map(ip =>
+      `<code class="mr4">${esc(ip)}</code>`).join('') || '<span class="dim">none</span>';
+    const riskHtml = (d.doh_risks || []).length
+      ? `<div class="rc-warn">⚠ resolv.conf lists ${d.doh_risks.map(r =>
+        `<code>${esc(r.ip)}</code> (${esc(r.provider)})`).join(', ')} —
+        browsers that recognise these can silently switch to their own DoH and bypass dnsmasq.
+        Keep the browser test below green, or set the browser's Secure DNS to <b>Off</b>.</div>`
+      : '';
+
+    box.innerHTML = `
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+            Resolver health
+            ${d.dnsmasq_first
+        ? '<span class="badge badge-green">system → dnsmasq</span>'
+        : '<span class="badge badge-red">system NOT using dnsmasq</span>'}
+          </div>
+          <span class="card-hint">nameservers: ${nsList}</span>
+        </div>
+        <div class="card-body">
+          ${riskHtml}
+          <div class="enc-row">
+            <p class="enc-desc" style="margin:0">
+              <b>Is my browser using this resolver?</b> Browsers can bypass dnsmasq with built-in
+              DoH ("Secure DNS"). This test makes your browser resolve a random marker name and
+              checks whether the query reached dnsmasq.
+              ${!d.log_queries ? '<br><span class="err-text">Requires log-queries (Settings → Logging).</span>' : ''}
+            </p>
+            <div class="enc-controls">
+              <button class="btn btn-primary" id="rc-test" ${!d.log_queries ? 'disabled' : ''}>Test this browser</button>
+            </div>
+          </div>
+          <div id="rc-result"></div>
+        </div>
+      </div>`;
+
+    const btn = $('#rc-test', box);
+    if (btn) btn.addEventListener('click', async () => {
+      const out = $('#rc-result');
+      btn.disabled = true;
+      out.innerHTML = '<div class="rc-running"><span class="spinner"></span> resolving marker through this browser…</div>';
+      const name = 'browser-check-' + Math.random().toString(36).slice(2, 12) + '.test';
+      try {
+        // Make THIS browser resolve the marker. The fetch itself always
+        // fails (the name has no address) — only the DNS lookup matters.
+        const ctl = new AbortController();
+        setTimeout(() => ctl.abort(), 3000);
+        await fetch('http://' + name + '/', { mode: 'no-cors', signal: ctl.signal }).catch(() => { });
+        await new Promise(r => setTimeout(r, 1500)); // let the query hit the journal
+        const v = await api('GET', '/api/resolver-check/verify?name=' + encodeURIComponent(name));
+        out.innerHTML = v.seen
+          ? `<div class="rc-verdict ok">✓ Your browser's DNS goes through dnsmasq — the marker query
+              <code>${esc(name)}</code> arrived. The encrypted chain covers this browser.</div>`
+          : `<div class="rc-verdict bad">✕ The marker query never reached dnsmasq — this browser is
+              resolving with its own Secure DNS (DoH) and <b>bypasses your chain</b>.<br>
+              Fix: Chrome → <code>chrome://settings/security</code> → “Use secure DNS” → <b>Off</b> ·
+              Firefox → Settings → Privacy → “Enable DNS over HTTPS” → <b>Off</b> — dnsmasq already
+              encrypts upstream, so nothing is lost.</div>`;
+      } catch (e) {
+        out.innerHTML = `<div class="rc-verdict bad">test failed: ${esc(e.message)}</div>`;
+      } finally { btn.disabled = false; }
     });
   }
 
@@ -1763,7 +1840,7 @@
     renderAllSections();
 
     switch (S.page) {
-      case 'dns': renderEncDNS(); break;
+      case 'dns': renderEncDNS(); renderResolverCheck(); break;
       case 'index':
         renderDashboard(); initLookup();
         // backfill the live activity feed with recent journal history (deep

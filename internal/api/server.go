@@ -122,6 +122,10 @@ func (s *Server) SetupRoutes() http.Handler {
 	mux.HandleFunc("GET /api/encdns", s.apiEncDNSStatus)
 	mux.HandleFunc("PUT /api/encdns", s.apiEncDNSSet)
 
+	// Resolver health / browser-bypass detection
+	mux.HandleFunc("GET /api/resolver-check", s.apiResolverCheck)
+	mux.HandleFunc("GET /api/resolver-check/verify", s.apiResolverVerify)
+
 	// Data
 	mux.HandleFunc("GET /api/dhcp/leases", s.apiGetLeases)
 	mux.HandleFunc("GET /api/interfaces", s.apiInterfaces)

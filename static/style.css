@@ -1020,6 +1020,29 @@ tr.row-new { animation: rowNew 1.6s var(--ease); }
 .enc-controls { display: flex; gap: 8px; align-items: center; }
 .enc-controls .form-select { width: 210px; }
 
+/* resolver health */
+.rc-warn {
+  font-size: 12.5px;
+  color: var(--yellow);
+  background: var(--yellow-dim);
+  border: 1px solid rgba(255, 200, 87, .3);
+  border-radius: var(--r-sm);
+  padding: 10px 13px;
+  margin-bottom: 14px;
+}
+.rc-running { margin-top: 12px; color: var(--text2); font-size: 12.5px; display: flex; gap: 8px; align-items: center; }
+.rc-verdict {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  line-height: 1.6;
+  border: 1px solid;
+}
+.rc-verdict.ok { color: var(--green); background: var(--green-dim); border-color: rgba(61, 220, 151, .3); }
+.rc-verdict.bad { color: var(--red); background: var(--red-dim); border-color: rgba(255, 77, 109, .3); }
+.rc-verdict code { color: inherit; background: rgba(0, 0, 0, .25); }
+
 /* ═══ Lookup tester ═════════════════════════════════════════════════ */
 .lookup-form { display: flex; gap: 8px; }
 .lookup-form .form-input { flex: 1; }

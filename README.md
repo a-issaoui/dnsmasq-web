@@ -247,6 +247,34 @@ apps → dnsmasq (127.0.0.1:53, cache + local records) ──┬── .lan / re
 
 API: `GET /api/encdns` (status + providers), `PUT /api/encdns` `{enabled, provider}`.
 
+### Don't let the browser bypass the chain with its own DoH
+
+Modern browsers ship their own "Secure DNS" (DoH). In Chrome's default **automatic** mode the
+browser may silently upgrade to a provider's DoH endpoint when it recognises a known resolver in
+your system DNS config — at which point it **stops using dnsmasq entirely**: no local records,
+no `.lan` names, no blocking, no query log, and a second, separate encryption path you didn't
+choose. This is especially likely if `/etc/resolv.conf` lists a fallback like `1.1.1.1` or
+`8.8.8.8` (browsers map exactly those to DoH).
+
+Since dnsmasq already encrypts upstream, the right setting is to **turn the browser's own DoH
+off**:
+
+- **Chrome / Chromium / Edge** → `chrome://settings/security` → *Use secure DNS* → **Off**
+  (or pin it to a provider only if you deliberately want to bypass dnsmasq)
+- **Firefox** → Settings → Privacy & Security → *Enable DNS over HTTPS* → **Off**
+  (Firefox also respects `network.trr.mode=5` for "explicitly off")
+
+**Verify it, don't trust it** — the console has a one-click test on *DNS → Upstream* →
+*Resolver health*: **"Test this browser"** makes the browser resolve a random marker name
+(`browser-check-….test`) and then checks whether that query actually reached dnsmasq. Green
+means the browser rides your chain; red means its DoH is bypassing you. The same card passively
+warns when `resolv.conf` contains a DoH-upgradable public resolver.
+
+Manual equivalent of the test: add a marker only dnsmasq knows —
+`address=/dnsmasq-doh-check.test/10.66.66.66` — restart, then look the name up *in the browser*.
+If the browser sees `10.66.66.66` it's using dnsmasq; a DoH-ing browser gets NXDOMAIN from its
+provider and the name never appears in your query log. Remove the marker afterwards.
+
 ## Remote access & security
 
 dnsmasq-web has **no built-in authentication** and it edits a root-owned system service —
