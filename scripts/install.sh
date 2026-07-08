@@ -61,6 +61,10 @@ fi
 # ── Install files ────────────────────────────────────────────────────
 echo "→ installing to $INSTALL_DIR…"
 mkdir -p "$INSTALL_DIR"
+NEED_RESTART=0
+if ! cmp -s "$REPO_DIR/dnsmasq-web" "$INSTALL_DIR/dnsmasq-web" 2>/dev/null; then
+    NEED_RESTART=1   # binary changed → the running service must be restarted
+fi
 install -m 0755 "$REPO_DIR/dnsmasq-web" "$INSTALL_DIR/dnsmasq-web.new"
 mv -f "$INSTALL_DIR/dnsmasq-web.new" "$INSTALL_DIR/dnsmasq-web"   # atomic swap while running
 cp -r  "$REPO_DIR/templates" "$REPO_DIR/static" "$INSTALL_DIR/"
@@ -73,6 +77,10 @@ echo "→ registering systemd service…"
 cp "$REPO_DIR/scripts/dnsmasq-web.service" "$UNIT"
 systemctl daemon-reload
 systemctl enable --now dnsmasq-web
+if [[ "$NEED_RESTART" == 1 ]] && systemctl is-active --quiet dnsmasq-web; then
+    echo "→ binary changed — restarting dnsmasq-web…"
+    systemctl restart dnsmasq-web
+fi
 
 sleep 1
 if systemctl is-active --quiet dnsmasq-web; then
