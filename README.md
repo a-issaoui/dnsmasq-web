@@ -6,6 +6,7 @@
 
 DNS · DHCP · TFTP · PXE — every option, one beautiful realtime dashboard.
 
+[![CI](https://github.com/a-issaoui/dnsmasq-web/actions/workflows/ci.yml/badge.svg)](https://github.com/a-issaoui/dnsmasq-web/actions/workflows/ci.yml)
 ![Go](https://img.shields.io/badge/Go-1.22%2B-00ADD8?logo=go&logoColor=white)
 ![stdlib only](https://img.shields.io/badge/dependencies-zero-3ddc97)
 ![no CDN](https://img.shields.io/badge/frontend-vanilla%20JS%2C%20no%20CDN-38e1ff)
@@ -222,6 +223,8 @@ restart dnsmasq-web`):
 | `BACKUP_DIR` | `/var/backups/dnsmasq-web` | where snapshots are stored |
 | `TEMPLATE_DIR` | `./templates` | HTML templates |
 | `STATIC_DIR` | `./static` | CSS / JS assets |
+| `AUTH_PASSWORD` | *(unset — auth disabled)* | set to require a sign-in for the console |
+| `API_TOKEN` | *(unset — bearer disabled)* | token for non-browser clients (`Authorization: Bearer …`) |
 
 > 💡 **Tip:** for the live DNS query stream, enable **log-queries** under *Settings → Logging*
 > (use the value `extra` to also capture client addresses), then restart dnsmasq.
@@ -281,11 +284,25 @@ provider and the name never appears in your query log. Remove the marker afterwa
 
 ## Remote access & security
 
-dnsmasq-web has **no built-in authentication** and it edits a root-owned system service —
-treat it like you'd treat `/etc/dnsmasq.conf` itself:
+dnsmasq-web edits a root-owned system service — treat it like you'd treat
+`/etc/dnsmasq.conf` itself:
 
 - The shipped systemd unit binds to **`127.0.0.1` only** (change `HOST=` to open it up).
-- For LAN access, prefer a reverse proxy with auth in front, e.g. Caddy:
+- **Built-in login (optional):** set `AUTH_PASSWORD` in the unit and the console requires a
+  sign-in — HttpOnly `SameSite=Strict` session cookie, constant-time compare, per-IP lockout
+  after 5 failed attempts. Set `API_TOKEN` alongside it so non-browser clients keep working
+  with `Authorization: Bearer $API_TOKEN` (the MCP server reads the same token from its
+  `DNSMASQ_WEB_TOKEN` env). Unauthenticated requests never reach a handler — including
+  MCP-tagged ones, which also stay out of the activity feed.
+
+  ```ini
+  # /etc/systemd/system/dnsmasq-web.service  →  [Service]
+  Environment=AUTH_PASSWORD=your-password
+  Environment=API_TOKEN=$(openssl rand -hex 32)   # paste the value, not the command
+  ```
+
+- Auth runs over plain HTTP, so for anything beyond localhost put TLS in front. For LAN
+  access a reverse proxy also works as the auth layer if you prefer, e.g. Caddy:
 
   ```
   dns.example.lan {
@@ -398,10 +415,12 @@ it holds no privilege of its own, and every write still goes through
 
 The agent tags every request with an `X-MCP-Client` header, which is how the
 console distinguishes and gates MCP traffic (UI requests are never gated).
-Note this gate is **cooperative, not cryptographic**: the console has no
-authentication, so anything that can reach the port can also call the API
-without the header. Keep `HOST=127.0.0.1` (the default) or front the console
-with an authenticating reverse proxy.
+Without auth enabled this gate is **cooperative, not cryptographic** — anything
+that can reach the port can also call the API without the header. Enable the
+built-in login (`AUTH_PASSWORD` + `API_TOKEN`, see
+[Remote access & security](#remote-access--security)) to make it enforceable:
+unauthenticated requests are rejected before they reach any handler, and the
+agent authenticates with the bearer token.
 
 ```
 GET /api/mcp/status     { client, connected, last_seen, total_calls,
@@ -428,6 +447,7 @@ dnsmasq-web/
 │   │   ├── server.go             routes + handlers (net/http, Go 1.22 route patterns)
 │   │   ├── sse.go                event hub · watchers · journal follow · log parsing
 │   │   ├── mcp.go                MCP activity tracker + write kill-switch
+│   │   ├── auth.go               optional login: sessions, bearer token, lockout
 │   │   ├── encdns.go             encrypted upstream (dnscrypt-proxy / DoH) control
 │   │   └── resolvercheck.go      resolver-health + browser DoH-bypass verification
 │   ├── dnsmasq/
@@ -485,9 +505,11 @@ IPv6 leases show up in the live lease table tagged <code>v6</code>.
 </details>
 
 <details>
-<summary><b>Why no authentication?</b></summary>
-Auth done badly is worse than a clear boundary. The unit binds to localhost by default; put
-your reverse proxy's battle-tested auth (or an SSH tunnel) in front for remote access.
+<summary><b>Is there authentication?</b></summary>
+Optional and off by default: the unit binds to localhost, where a login adds friction without
+a threat model. Set <code>AUTH_PASSWORD</code> to enable the built-in sign-in (sessions,
+lockout, bearer token for scripts/MCP) — or keep it off and put your reverse proxy's
+battle-tested auth (or an SSH tunnel) in front for remote access.
 </details>
 
 ---
