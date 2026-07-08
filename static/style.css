@@ -42,6 +42,10 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+/* The hidden attribute must always win, even over rules that set display
+   (e.g. .apply-bar { display:flex }). */
+[hidden] { display: none !important; }
+
 html { color-scheme: dark; }
 
 body {
