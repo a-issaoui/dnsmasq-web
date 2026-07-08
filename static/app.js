@@ -1381,25 +1381,58 @@
       const out = $('#rc-result');
       btn.disabled = true;
       out.innerHTML = '<div class="rc-running"><span class="spinner"></span> resolving marker through this browser…</div>';
-      const name = 'browser-check-' + Math.random().toString(36).slice(2, 12) + '.test';
+
+      const rand = () => Math.random().toString(36).slice(2, 12);
+      const marker = 'browser-check-' + rand() + '.test';
+      const control = 'control-check-' + rand() + '.test';
+
+      // Preconditions: without a running dnsmasq + query logging the test
+      // cannot distinguish anything — report inconclusive up front.
+      const inconclusive = why => {
+        out.innerHTML = `<div class="rc-verdict warn">? Inconclusive — ${why}</div>`;
+      };
+      if (S.status && !S.status.running) { inconclusive('dnsmasq is not running.'); btn.disabled = false; return; }
+      if (!d.log_queries) { inconclusive('log-queries is off (Settings → Logging).'); btn.disabled = false; return; }
+
       try {
-        // Make THIS browser resolve the marker. The fetch itself always
-        // fails (the name has no address) — only the DNS lookup matters.
+        // Make THIS browser resolve the marker. Match the page's scheme so
+        // mixed-content blocking can never kill the lookup before DNS fires,
+        // and use both fetch and an image beacon for belt-and-braces.
+        const url = location.protocol + '//' + marker + '/';
         const ctl = new AbortController();
-        setTimeout(() => ctl.abort(), 3000);
-        await fetch('http://' + name + '/', { mode: 'no-cors', signal: ctl.signal }).catch(() => { });
-        await new Promise(r => setTimeout(r, 1500)); // let the query hit the journal
-        const v = await api('GET', '/api/resolver-check/verify?name=' + encodeURIComponent(name));
-        out.innerHTML = v.seen
-          ? `<div class="rc-verdict ok">✓ Your browser's DNS goes through dnsmasq — the marker query
-              <code>${esc(name)}</code> arrived. The encrypted chain covers this browser.</div>`
-          : `<div class="rc-verdict bad">✕ The marker query never reached dnsmasq — this browser is
-              resolving with its own Secure DNS (DoH) and <b>bypasses your chain</b>.<br>
-              Fix: Chrome → <code>chrome://settings/security</code> → “Use secure DNS” → <b>Off</b> ·
-              Firefox → Settings → Privacy → “Enable DNS over HTTPS” → <b>Off</b> — dnsmasq already
-              encrypts upstream, so nothing is lost.</div>`;
+        setTimeout(() => ctl.abort(), 2500);
+        const img = new Image();
+        img.src = url + 'px.gif';
+        await fetch(url, { mode: 'no-cors', signal: ctl.signal }).catch(() => { });
+        img.src = '';
+
+        // Poll the journal (browser → resolver → dnsmasq → journald has real
+        // latency). The first poll also fires the server-side control query.
+        let v = { marker_seen: false, control_seen: false };
+        for (let i = 0; i < 5; i++) {
+          const q = `name=${encodeURIComponent(marker)}&control=${encodeURIComponent(control)}` + (i === 0 ? '&fire=1' : '');
+          v = await api('GET', '/api/resolver-check/verify?' + q);
+          if (v.marker_seen) break;
+          await new Promise(r => setTimeout(r, 900));
+        }
+
+        if (v.marker_seen) {
+          out.innerHTML = `<div class="rc-verdict ok">✓ Your browser's DNS goes through dnsmasq — the marker
+            query <code>${esc(marker)}</code> arrived. The encrypted chain covers this browser.</div>`;
+        } else if (v.control_seen) {
+          // journald pipeline demonstrably works, the browser's query never came
+          out.innerHTML = `<div class="rc-verdict bad">✕ The control query reached dnsmasq but this browser's
+            marker never did — the browser resolves with its own Secure DNS (DoH) and <b>bypasses your chain</b>.<br>
+            Fix: Chrome → <code>chrome://settings/security</code> → “Use secure DNS” → <b>Off</b> ·
+            Firefox → Settings → Privacy → “Enable DNS over HTTPS” → <b>Off</b> — dnsmasq already
+            encrypts upstream, so nothing is lost.</div>`;
+        } else {
+          inconclusive(`neither the browser marker nor the server-side control query surfaced in the
+            journal within 5 s — the logging pipeline looks stalled (journald backlog or the browser
+            never issued the lookup). Try again; a real DoH bypass would show the control but not the marker.`);
+        }
       } catch (e) {
-        out.innerHTML = `<div class="rc-verdict bad">test failed: ${esc(e.message)}</div>`;
+        inconclusive('test error: ' + esc(e.message));
       } finally { btn.disabled = false; }
     });
   }

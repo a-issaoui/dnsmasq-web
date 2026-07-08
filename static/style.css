@@ -93,6 +93,10 @@ a:hover { text-decoration: underline; }
   display: flex;
   flex-direction: column;
   margin-left: var(--sidebar-w);
+  /* lock to the viewport: the page area scrolls internally so fill-mode
+     tables/logs can stretch exactly to the bottom of the window */
+  height: 100vh;
+  overflow: hidden;
 }
 
 /* ═══ Sidebar ═══════════════════════════════════════════════════════ */
@@ -327,10 +331,41 @@ a:hover { text-decoration: underline; }
 /* ═══ Page ══════════════════════════════════════════════════════════ */
 .page {
   flex: 1;
+  min-height: 0;
   width: 100%;
   padding: 26px 30px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   animation: pageIn .35s var(--ease);
 }
+.page > * { flex-shrink: 0; }
+
+/* ── fill mode: a pane/card grows to the bottom of the viewport and its
+   table/log body scrolls internally (flex chain with min-height:0) ──── */
+.tab-pane.pane-fill.active { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.card.fill {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0;
+}
+.card.fill > .card-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+.card.fill > .card-body.scroll-y { display: block; overflow-y: auto; }
+.card.fill .tbl-wrap { flex: 1; min-height: 200px; overflow: auto; }
+.card.fill .log-container { flex: 1; min-height: 220px; height: auto; }
+.card.fill #lease-table { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.card.fill #line-explorer { flex: 1; min-height: 200px; overflow-y: auto; }
+.card.fill .editor-wrap { flex: 1; min-height: 0; display: flex; }
+.card.fill .raw-editor { flex: 1; height: auto; min-height: 260px; resize: none; }
+.card.fill thead th { position: sticky; top: 0; background: #101828; z-index: 2; }
 @keyframes pageIn { from { opacity: 0; transform: translateY(8px); } }
 
 .page-hdr {
@@ -1041,6 +1076,7 @@ tr.row-new { animation: rowNew 1.6s var(--ease); }
 }
 .rc-verdict.ok { color: var(--green); background: var(--green-dim); border-color: rgba(61, 220, 151, .3); }
 .rc-verdict.bad { color: var(--red); background: var(--red-dim); border-color: rgba(255, 77, 109, .3); }
+.rc-verdict.warn { color: var(--yellow); background: var(--yellow-dim); border-color: rgba(255, 200, 87, .3); }
 .rc-verdict code { color: inherit; background: rgba(0, 0, 0, .25); }
 
 /* ═══ Lookup tester ═════════════════════════════════════════════════ */

@@ -2,10 +2,13 @@ package api
 
 import (
 	"bufio"
+	"context"
+	"net"
 	"net/http"
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	"dnsmasq-web/internal/dnsmasq"
 )
@@ -70,29 +73,81 @@ func (s *Server) apiResolverCheck(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-var reCheckName = regexp.MustCompile(`^browser-check-[a-z0-9]{6,32}\.test$`)
+var reCheckName = regexp.MustCompile(`^(browser|control)-check-[a-z0-9]{6,32}\.test$`)
 
-// GET /api/resolver-check/verify?name= — did a query for the marker name
-// reach dnsmasq? The client makes the browser resolve the name first; if the
-// browser uses its own DoH, the query never appears in dnsmasq's journal.
+// localProbe makes the server itself resolve a name through dnsmasq. Used as
+// a control: if the control query shows up in the journal but the browser's
+// marker doesn't, the browser is genuinely bypassing — not a logging hiccup.
+func (s *Server) localProbe(name string) {
+	port := "53"
+	if conf, err := dnsmasq.LoadConf(s.cfg.DnsmasqConf); err == nil {
+		if v, ok := conf.Scalar("port"); ok && v != "" && v != "0" {
+			port = v
+		}
+	}
+	res := &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			d := net.Dialer{Timeout: time.Second}
+			return d.DialContext(ctx, network, net.JoinHostPort("127.0.0.1", port))
+		},
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 1500*time.Millisecond)
+	defer cancel()
+	_, _ = res.LookupHost(ctx, name) // NXDOMAIN expected — only the journal entry matters
+}
+
+// journalSeen reports which of the given names appear in a recent dnsmasq
+// query[...] journal line (any record type: A, AAAA, HTTPS/65, …).
+func (s *Server) journalSeen(names ...string) (map[string]bool, error) {
+	logs, err := s.svc.GetLogs(500)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string]bool, len(names))
+	for _, l := range logs {
+		if !strings.Contains(l, "query[") {
+			continue
+		}
+		for _, n := range names {
+			if !out[n] && strings.Contains(l, n) {
+				out[n] = true
+			}
+		}
+	}
+	return out, nil
+}
+
+// GET /api/resolver-check/verify?name=&control=[&fire=1]
+//
+// The client makes the BROWSER resolve `name`; the server resolves `control`
+// itself (once, when fire=1). The client polls this endpoint and derives a
+// tri-state verdict:
+//
+//	marker seen              → browser is on the chain
+//	control seen, marker not → browser bypasses dnsmasq (its own DoH)
+//	neither seen             → inconclusive (journald latency / logging issue)
 func (s *Server) apiResolverVerify(w http.ResponseWriter, r *http.Request) {
 	name := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("name")))
-	if !reCheckName.MatchString(name) {
+	control := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("control")))
+	if !reCheckName.MatchString(name) || (control != "" && !reCheckName.MatchString(control)) {
 		jsonErr(w, 400, "invalid check name")
 		return
 	}
-	logs, err := s.svc.GetLogs(400)
+	if r.URL.Query().Get("fire") == "1" && control != "" {
+		s.localProbe(control)
+	}
+	names := []string{name}
+	if control != "" {
+		names = append(names, control)
+	}
+	seen, err := s.journalSeen(names...)
 	if err != nil {
 		jsonErr(w, 500, err.Error())
 		return
 	}
-	seen := false
-	for i := len(logs) - 1; i >= 0 && i >= len(logs)-400; i-- {
-		l := logs[i]
-		if strings.Contains(l, name) && strings.Contains(l, "query[") {
-			seen = true
-			break
-		}
-	}
-	jsonOK(w, map[string]any{"seen": seen, "name": name})
+	jsonOK(w, map[string]any{
+		"marker_seen":  seen[name],
+		"control_seen": control != "" && seen[control],
+	})
 }
