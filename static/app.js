@@ -851,7 +851,10 @@
       tb.className = 'status-chip ' + (running ? 'green' : 'red');
       tb.innerHTML = `<span class="chip-dot"></span>${running ? 'Online' : 'Offline'}`;
     }
-    if (bar) bar.hidden = !st.stale_config;
+    if (bar) {
+      if (!st.stale_config) sessionStorage.removeItem('applyDismissed');
+      bar.hidden = !st.stale_config || sessionStorage.getItem('applyDismissed') === '1';
+    }
     if (S.page === 'index') renderDashboard();
     if (S.page === 'settings') renderBootToggle();
   }
@@ -1584,11 +1587,15 @@
     const sb = $('#sidebar');
     $('#mob-btn').addEventListener('click', () => sb.classList.toggle('open'));
     $('#sb-scrim').addEventListener('click', () => sb.classList.remove('open'));
-    // apply bar restart
+    // apply bar restart + dismiss
     $('[data-action="svc-restart-apply"]').addEventListener('click', b => guarded(b, async () => {
       const d = await api('POST', '/api/service/restart');
       toast(d.message, 'success');
     }));
+    $('[data-action="apply-dismiss"]').addEventListener('click', () => {
+      sessionStorage.setItem('applyDismissed', '1');
+      $('#apply-bar').hidden = true;
+    });
   }
 
   /* ── boot ──────────────────────────────────────────────────────────── */

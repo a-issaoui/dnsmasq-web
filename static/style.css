@@ -307,6 +307,15 @@ a:hover { text-decoration: underline; }
   animation: slideDown .3s var(--ease);
 }
 .apply-bar-text { display: flex; align-items: center; gap: 9px; }
+.apply-bar-actions { display: flex; align-items: center; gap: 8px; }
+.btn-icon-sm {
+  width: 26px; height: 26px;
+  border: none;
+  color: var(--yellow);
+  font-size: 17px;
+  opacity: .7;
+}
+.btn-icon-sm:hover { opacity: 1; background: rgba(255, 200, 87, .15); border-radius: 6px; }
 @keyframes slideDown { from { opacity: 0; transform: translateY(-6px); } }
 
 /* ═══ Page ══════════════════════════════════════════════════════════ */

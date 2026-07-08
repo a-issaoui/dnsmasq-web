@@ -152,9 +152,14 @@
             <line x1="12" y1="8" x2="12" y2="12" />
             <line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
-          <span>Configuration changed on disk — restart dnsmasq to apply it.</span>
+          <span>Unapplied changes — dnsmasq only reads its config at startup, so restart to apply
+            (reload is not enough).</span>
         </div>
-        <button class="btn btn-sm btn-warning" data-action="svc-restart-apply">Restart now</button>
+        <div class="apply-bar-actions">
+          <button class="btn btn-sm btn-warning" data-action="svc-restart-apply">Restart now</button>
+          <button class="btn-icon btn-icon-sm" data-action="apply-dismiss" title="Hide until the next change"
+            aria-label="Dismiss">×</button>
+        </div>
       </div>
 
       <main class="page" id="page">
