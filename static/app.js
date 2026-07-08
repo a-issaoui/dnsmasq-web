@@ -1008,10 +1008,20 @@
     statSet('stat-mem', st.memory_mb ? st.memory_mb.toFixed(1) + ' MB' : '—', null, 'orange');
 
     if (S.conf) {
-      const dnsCount = ['host-record', 'cname', 'address', 'srv-host', 'txt-record', 'ptr-record', 'mx-host', 'naptr-record', 'caa-record', 'dns-rr']
+      const dnsCount = ['host-record', 'cname', 'address', 'srv-host', 'txt-record', 'ptr-record', 'mx-host', 'naptr-record', 'caa-record', 'dns-rr', 'interface-name']
         .reduce((n, k) => n + confEntries(k).length, 0);
-      const upstreams = confEntries('server').length;
-      statSet('stat-dns', dnsCount, `${upstreams} upstream server${upstreams === 1 ? '' : 's'}`, 'cyan');
+      // distinguish real upstreams from domain-scoped conditional forwarders
+      const servers = confEntries('server');
+      const globals = servers.filter(l => !l.value.startsWith('/'));
+      const conds = servers.length - globals.length;
+      const encrypted = globals.some(l => l.value === '127.0.0.1#5053');
+      const condTxt = conds ? ` · ${conds} conditional` : '';
+      const upTrend = encrypted
+        ? 'encrypted upstream (DoH)' + condTxt
+        : globals.length
+          ? `${globals.length} upstream server${globals.length === 1 ? '' : 's'}` + condTxt
+          : 'upstream via resolv.conf' + condTxt;
+      statSet('stat-dns', dnsCount, upTrend, 'cyan');
       const ranges = confEntries('dhcp-range').length;
       const hosts = confEntries('dhcp-host').length;
       statSet('stat-dhcp', ranges ? 'On' : 'Off',
@@ -1019,6 +1029,7 @@
         ranges ? 'green' : '');
       statSet('stat-leases', S.leases.length, `cache ${confScalar('cache-size') || '150'} entries`, 'purple');
       const feats = [];
+      if (encrypted) feats.push('DoH');
       if (confHas('dnssec')) feats.push('DNSSEC');
       if (confHas('enable-tftp')) feats.push('TFTP');
       if (confHas('enable-ra')) feats.push('RA');
