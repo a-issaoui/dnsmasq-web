@@ -15,6 +15,8 @@ DNS · DHCP · TFTP · PXE — every option, one beautiful realtime dashboard.
 *Line-preserving config editing · `dnsmasq --test` validation before every write ·
 automatic backups · Server-Sent-Events realtime · IBM Plex dark NOC theme*
 
+![dnsmasq-web dashboard](doc/screenshot-dashboard.png)
+
 </div>
 
 ---
@@ -63,7 +65,8 @@ on every save.
   changes, the live journal, and a parsed DNS query stream. No polling, no flicker, no manual
   refresh.
 - 📦 **Zero dependencies** — pure Go standard library on the backend, hand-written vanilla
-  JS/CSS on the frontend. The only external request the UI ever makes is the IBM Plex font.
+  JS/CSS on the frontend, self-hosted IBM Plex fonts. The UI makes **no external requests
+  at all** — it works fully air-gapped.
 
 ## Feature tour
 
@@ -145,7 +148,7 @@ Interception persists across reboots (it's written into the NetworkManager conne
 profile) and is fully reversible:
 
 ```bash
-sudo bash /opt/dnsmasq-web/scripts/dnsmasq-manager.sh stop   # restore original DNS
+sudo bash /opt/dnsmasq-web/scripts/dnsmasq-manager.sh stop   # stop dnsmasq + restore original DNS
 ```
 
 Manage it like any service:
@@ -308,6 +311,7 @@ on the same state within ~2 seconds of any change, whatever caused it (the UI, a
 | `log` | persistent `journalctl -f` | raw journal line | journal viewer append |
 | `query` | parsed dnsmasq query log | kind, name, rtype, value, client | query stream + dashboard feed |
 | `dhcp` | parsed DHCP transaction log | kind, IP, MAC, hostname, iface | dashboard activity feed |
+| `mcp` | MCP-tagged API requests | client, call counts, writes_allowed, recent calls | MCP page + dashboard MCP strip |
 
 Clients reconnect automatically and receive a full snapshot on connect; the topbar shows
 `LIVE` / `RECONNECTING` so you always know where you stand.
@@ -358,7 +362,7 @@ GET    /api/backups/{name}        backup content + current config (for diffing)
 POST   /api/backups/restore       { filename }   validated & snapshotted first
 DELETE /api/backups/{name}
 
-GET    /api/events                SSE stream: status, leases, config, log, query, dhcp
+GET    /api/events                SSE stream: status, leases, config, log, query, dhcp, mcp
 ```
 
 </details>
@@ -372,12 +376,13 @@ curl -X POST localhost:8053/api/conf/lines \
 
 ## AI control (MCP)
 
-dnsmasq-web ships with a companion **Model Context Protocol** server, so an AI
-agent (e.g. Claude Code) can drive dnsmasq with the same full coverage as the
-UI — add/edit config (validated + auto-snapshotted), toggle encrypted upstream,
-control the service, run lookups, manage backups. The MCP is a thin wrapper over
-the JSON API above: it holds no privilege of its own, and every write still goes
-through `dnsmasq --test` + a backup, exactly like the UI.
+dnsmasq-web is designed to be driven by a companion **Model Context Protocol**
+server (`dnsmasq-web-mcp`, a separate Node project), so an AI agent (e.g. Claude
+Code) can drive dnsmasq with the same full coverage as the UI — add/edit config
+(validated + auto-snapshotted), toggle encrypted upstream, control the service,
+run lookups, manage backups. The MCP is a thin wrapper over the JSON API above:
+it holds no privilege of its own, and every write still goes through
+`dnsmasq --test` + a backup, exactly like the UI.
 
 **The MCP page (`/mcp`)** gives you live oversight and a safety switch:
 
@@ -388,19 +393,30 @@ through `dnsmasq --test` + a backup, exactly like the UI.
 - **Write kill-switch** — *Allow MCP writes* toggle. Flip it off and the agent
   goes **read-only**: it can inspect everything, but any config/service/backup
   write is rejected with `403` until you re-enable it. Reads are never blocked.
+  The switch itself is **operator-only** — MCP-tagged requests can never toggle
+  it, so a read-only agent cannot re-enable its own writes.
 
 The agent tags every request with an `X-MCP-Client` header, which is how the
 console distinguishes and gates MCP traffic (UI requests are never gated).
+Note this gate is **cooperative, not cryptographic**: the console has no
+authentication, so anything that can reach the port can also call the API
+without the header. Keep `HOST=127.0.0.1` (the default) or front the console
+with an authenticating reverse proxy.
 
 ```
 GET /api/mcp/status     { client, connected, last_seen, total_calls,
                           blocked_calls, writes_allowed, recent:[…] }
 PUT /api/mcp/writes      { allowed: bool }     the read-only kill-switch
+                                               (rejected for MCP-tagged callers)
 ```
 
-The MCP server itself lives alongside this project; register it with your MCP
-client (stdio) and point it at the console with `DNSMASQ_WEB_URL` (default
-`http://127.0.0.1:8053`).
+Register the MCP server with your client as a stdio server and point it at the
+console with `DNSMASQ_WEB_URL` (default `http://127.0.0.1:8053`), e.g. for
+Claude Code:
+
+```bash
+claude mcp add dnsmasq-web -- node /path/to/dnsmasq-web-mcp/dist/server.js
+```
 
 ## Project layout
 
@@ -410,7 +426,10 @@ dnsmasq-web/
 ├── internal/
 │   ├── api/
 │   │   ├── server.go             routes + handlers (net/http, Go 1.22 route patterns)
-│   │   └── sse.go                event hub · watchers · journal follow · log parsing
+│   │   ├── sse.go                event hub · watchers · journal follow · log parsing
+│   │   ├── mcp.go                MCP activity tracker + write kill-switch
+│   │   ├── encdns.go             encrypted upstream (dnscrypt-proxy / DoH) control
+│   │   └── resolvercheck.go      resolver-health + browser DoH-bypass verification
 │   ├── dnsmasq/
 │   │   ├── conf.go               line-preserving config model + guarded mutations
 │   │   ├── registry.go           ~95-directive catalogue (kind · category · help · syntax)
@@ -421,7 +440,9 @@ dnsmasq-web/
 ├── templates/                    Go html/template page shells (one per page)
 ├── static/
 │   ├── app.js                    the console — registry-driven forms, composers, SSE client
-│   └── style.css                 IBM Plex dark NOC theme
+│   ├── style.css                 IBM Plex dark NOC theme
+│   ├── fonts.css                 self-hosted @font-face rules
+│   └── fonts/                    IBM Plex Sans (variable) + Mono woff2 (latin, SIL OFL 1.1)
 └── scripts/
     ├── install.sh                build + install + enable-at-boot (and uninstall)
     ├── dnsmasq-web.service       systemd unit
