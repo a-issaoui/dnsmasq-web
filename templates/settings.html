@@ -1,0 +1,27 @@
+{{define "content"}}
+<div class="page-hdr">
+  <div class="page-hdr-text">
+    <h1>Settings</h1>
+    <p>Logging, system identity and configuration includes</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">Service at boot</div>
+    <span id="boot-badge"></span>
+  </div>
+  <div class="card-body">
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-name">Start dnsmasq at boot</div>
+        <div class="toggle-desc">systemctl enable / disable dnsmasq.service</div>
+      </div>
+      <label class="toggle"><input type="checkbox" id="boot-toggle"><span class="toggle-track"></span></label>
+    </div>
+  </div>
+</div>
+
+<div data-sec="logging"></div>
+<div data-sec="system"></div>
+{{end}}

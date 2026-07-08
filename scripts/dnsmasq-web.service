@@ -1,0 +1,27 @@
+[Unit]
+Description=dnsmasq-web — web management console for dnsmasq
+Documentation=file:///opt/dnsmasq-web/README.md
+Wants=network-online.target
+After=network-online.target dnsmasq.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/dnsmasq-web
+ExecStart=/opt/dnsmasq-web/dnsmasq-web
+
+# ── Configuration ────────────────────────────────────────────────────
+# HOST=127.0.0.1 keeps the console local-only (recommended: there is no
+# built-in authentication). Set HOST= (empty) to listen on all interfaces
+# behind a firewall or reverse proxy.
+Environment=HOST=127.0.0.1
+Environment=PORT=8053
+Environment=DNSMASQ_CONF=/etc/dnsmasq.conf
+Environment=DNSMASQ_LEASES=/var/lib/dnsmasq/dnsmasq.leases
+Environment=BACKUP_DIR=/var/backups/dnsmasq-web
+
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

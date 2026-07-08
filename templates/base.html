@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{if .Title}}{{.Title}} · {{end}}dnsmasq</title>
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b1020'/><circle cx='16' cy='16' r='6.5' fill='none' stroke='%2338e1ff' stroke-width='2'/><line x1='16' y1='3' x2='16' y2='9' stroke='%2338e1ff' stroke-width='2'/><line x1='16' y1='23' x2='16' y2='29' stroke='%2338e1ff' stroke-width='2'/><line x1='3' y1='16' x2='9' y2='16' stroke='%2338e1ff' stroke-width='2'/><line x1='23' y1='16' x2='29' y2='16' stroke='%2338e1ff' stroke-width='2'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body data-page="{{.Page}}">
+
+  <div class="shell">
+
+    <!-- ─── Sidebar ─────────────────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sb-brand">
+        <div class="sb-brand-mark">
+          <svg viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.6" />
+            <circle cx="12" cy="12" r="3.5" stroke="currentColor" stroke-width="1.6" />
+            <line x1="12" y1="1.5" x2="12" y2="6" stroke="currentColor" stroke-width="1.6" />
+            <line x1="12" y1="18" x2="12" y2="22.5" stroke="currentColor" stroke-width="1.6" />
+            <line x1="1.5" y1="12" x2="6" y2="12" stroke="currentColor" stroke-width="1.6" />
+            <line x1="18" y1="12" x2="22.5" y2="12" stroke="currentColor" stroke-width="1.6" />
+          </svg>
+        </div>
+        <div>
+          <div class="sb-brand-name">dnsmasq</div>
+          <div class="sb-brand-sub">web console</div>
+        </div>
+      </div>
+
+      <nav class="sb-nav">
+        <div class="sb-group-label">Overview</div>
+        <a href="/" class="sb-item" data-nav="index">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <rect x="3" y="3" width="7" height="7" rx="1.5" />
+            <rect x="14" y="3" width="7" height="7" rx="1.5" />
+            <rect x="3" y="14" width="7" height="7" rx="1.5" />
+            <rect x="14" y="14" width="7" height="7" rx="1.5" />
+          </svg><span>Dashboard</span>
+        </a>
+
+        <div class="sb-group-label">Services</div>
+        <a href="/dns" class="sb-item" data-nav="dns">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="2" y1="12" x2="22" y2="12" />
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+          </svg><span>DNS</span><span class="sb-badge" data-badge="dns" hidden></span>
+        </a>
+        <a href="/dhcp" class="sb-item" data-nav="dhcp">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <rect x="2" y="6" width="20" height="12" rx="2" />
+            <path d="M6.5 12h.01M10 12h.01M13.5 12h.01M17 12h.01" />
+          </svg><span>DHCP</span><span class="sb-badge cyan" data-badge="leases" hidden></span>
+        </a>
+        <a href="/tftp" class="sb-item" data-nav="tftp">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+            <polyline points="7 9 12 4 17 9" />
+            <line x1="12" y1="4" x2="12" y2="16" />
+          </svg><span>TFTP</span><span class="sb-badge" data-badge="tftp" hidden></span>
+        </a>
+        <a href="/network" class="sb-item" data-nav="network">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <rect x="9" y="2" width="6" height="6" rx="1" />
+            <rect x="2" y="16" width="6" height="6" rx="1" />
+            <rect x="16" y="16" width="6" height="6" rx="1" />
+            <path d="M12 8v4M5 16v-2a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2" />
+          </svg><span>Network</span>
+        </a>
+
+        <div class="sb-group-label">System</div>
+        <a href="/settings" class="sb-item" data-nav="settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg><span>Settings</span>
+        </a>
+        <a href="/config" class="sb-item" data-nav="config">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <path d="M9 13l-2 2 2 2M15 13l2 2-2 2" />
+          </svg><span>Config File</span>
+        </a>
+        <a href="/logs" class="sb-item" data-nav="logs">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            <path d="M8 9h8M8 13h5" />
+          </svg><span>Logs</span>
+        </a>
+        <a href="/backups" class="sb-item" data-nav="backups">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg><span>Backups</span>
+        </a>
+      </nav>
+
+      <div class="sb-status" id="sb-status">
+        <span class="pulse gray"></span><span data-status-text>Connecting…</span>
+        <span class="sb-pid" data-status-pid hidden></span>
+      </div>
+    </aside>
+    <div class="sb-scrim" id="sb-scrim"></div>
+
+    <!-- ─── Main column ─────────────────────────────────────────── -->
+    <div class="content">
+      <header class="topbar">
+        <button class="btn-icon mob-only" id="mob-btn" aria-label="Toggle menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
+
+        <div class="breadcrumb">
+          <span class="bc-root">dnsmasq</span>
+          <svg width="10" height="10" viewBox="0 0 10 10">
+            <polyline points="3 2 7 5 3 8" fill="none" stroke="currentColor" stroke-width="1.5" />
+          </svg>
+          <span class="bc-page">{{.Title}}</span>
+        </div>
+
+        <div class="topbar-right">
+          <span class="live-dot" id="live-dot" title="Realtime stream">
+            <span class="live-dot-inner"></span><span class="live-label">LIVE</span>
+          </span>
+          <span class="topbar-clock" id="clock"></span>
+          <span class="status-chip gray" id="tb-status"><span class="chip-dot"></span>…</span>
+        </div>
+      </header>
+
+      <!-- Restart-needed banner (shown when on-disk config is newer than the running daemon) -->
+      <div class="apply-bar" id="apply-bar" hidden>
+        <div class="apply-bar-text">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <span>Configuration changed on disk — restart dnsmasq to apply it.</span>
+        </div>
+        <button class="btn btn-sm btn-warning" data-action="svc-restart-apply">Restart now</button>
+      </div>
+
+      <main class="page" id="page">
+        {{template "content" .}}
+      </main>
+
+      <footer class="footer">
+        <div class="footer-left">
+          <span>dnsmasq-web</span>
+          <span class="footer-sep"></span>
+          <span class="footer-dim">{{.ConfPath}}</span>
+        </div>
+        <div class="footer-right">
+          <span class="footer-dim">dnsmasq</span>
+          <span class="version-tag">{{if .Version}}v{{.Version}}{{else}}not found{{end}}</span>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <div id="toasts" aria-live="polite"></div>
+  <div class="modal" id="modal" hidden>
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-box" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <span class="modal-title" id="modal-title"></span>
+        <button class="modal-close" data-close-modal aria-label="Close">×</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-footer" id="modal-footer"></div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+
+</html>

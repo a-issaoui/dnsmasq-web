@@ -1,0 +1,44 @@
+{{define "content"}}
+<div class="page-hdr">
+  <div class="page-hdr-text">
+    <h1>DHCP</h1>
+    <p>Address pools, static hosts, options, netboot and live leases</p>
+  </div>
+</div>
+
+<div class="tabs" id="tabs">
+  <button class="tab active" data-tab="leases">Live leases</button>
+  <button class="tab" data-tab="dhcp-core">Ranges</button>
+  <button class="tab" data-tab="dhcp-hosts">Static hosts</button>
+  <button class="tab" data-tab="dhcp-options">Options</button>
+  <button class="tab" data-tab="dhcp-boot">Boot / PXE</button>
+  <button class="tab" data-tab="dhcp-tags">Tags</button>
+  <button class="tab" data-tab="dhcp-v6">IPv6 / RA</button>
+  <button class="tab" data-tab="dhcp-relay">Relay</button>
+</div>
+
+<div class="tab-pane active" data-pane="leases">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Active leases</div>
+      <div class="card-tools">
+        <div class="search-bar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input type="text" id="lease-filter" placeholder="Filter leases…" autocomplete="off">
+        </div>
+        <span class="card-hint" id="lease-count"></span>
+      </div>
+    </div>
+    <div class="card-body p0" id="lease-table"></div>
+  </div>
+</div>
+<div class="tab-pane" data-pane="dhcp-core"><div data-sec="dhcp-core"></div></div>
+<div class="tab-pane" data-pane="dhcp-hosts"><div data-sec="dhcp-hosts"></div></div>
+<div class="tab-pane" data-pane="dhcp-options"><div data-sec="dhcp-options"></div></div>
+<div class="tab-pane" data-pane="dhcp-boot"><div data-sec="dhcp-boot"></div></div>
+<div class="tab-pane" data-pane="dhcp-tags"><div data-sec="dhcp-tags"></div></div>
+<div class="tab-pane" data-pane="dhcp-v6"><div data-sec="dhcp-v6"></div></div>
+<div class="tab-pane" data-pane="dhcp-relay"><div data-sec="dhcp-relay"></div></div>
+{{end}}

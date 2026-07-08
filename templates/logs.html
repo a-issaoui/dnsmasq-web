@@ -1,0 +1,69 @@
+{{define "content"}}
+<div class="page-hdr">
+  <div class="page-hdr-text">
+    <h1>Logs</h1>
+    <p>Journal follow and the parsed DNS query stream — realtime</p>
+  </div>
+  <div class="page-hdr-actions">
+    <select class="form-select" id="log-lines">
+      <option value="100">Last 100</option>
+      <option value="250" selected>Last 250</option>
+      <option value="500">Last 500</option>
+      <option value="1000">Last 1000</option>
+    </select>
+    <button class="btn btn-outline" id="btn-pause">
+      <span id="pause-label">Pause</span>
+    </button>
+    <button class="btn btn-secondary" id="btn-clear">Clear</button>
+  </div>
+</div>
+
+<div class="tabs" id="tabs">
+  <button class="tab active" data-tab="journal">Journal</button>
+  <button class="tab" data-tab="queries">Query stream</button>
+</div>
+
+<div class="tab-pane active" data-pane="journal">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">dnsmasq.service <span class="live-inline" id="journal-live">● live</span></div>
+      <div class="card-tools">
+        <div class="search-bar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input type="text" id="log-filter" placeholder="Filter…" autocomplete="off">
+        </div>
+        <span class="card-hint" id="log-count">0 lines</span>
+      </div>
+    </div>
+    <div class="card-body p0">
+      <div class="log-container" id="log-box"></div>
+    </div>
+  </div>
+</div>
+
+<div class="tab-pane" data-pane="queries">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">DNS queries <span class="live-inline" id="query-live">● live</span></div>
+      <div class="card-tools">
+        <div class="search-bar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input type="text" id="query-filter" placeholder="Filter by name / client…" autocomplete="off">
+        </div>
+        <span class="card-hint" id="query-count">0 events</span>
+      </div>
+    </div>
+    <div class="card-body p0">
+      <div class="query-note" id="query-note" hidden>
+        <b>log-queries</b> is off — dnsmasq isn't logging queries. Enable it in
+        <a href="/settings">Settings → Logging</a> and restart to fill this stream.
+      </div>
+      <div class="log-container" id="query-box"></div>
+    </div>
+  </div>
+</div>
+{{end}}

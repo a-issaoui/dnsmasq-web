@@ -1,0 +1,25 @@
+{{define "content"}}
+<div class="page-hdr">
+  <div class="page-hdr-text">
+    <h1>Backups</h1>
+    <p>Every write validates first, then snapshots the previous config here</p>
+  </div>
+  <div class="page-hdr-actions">
+    <button class="btn btn-secondary" id="btn-create-backup">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+      </svg>
+      Snapshot now
+    </button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">Backup files</div>
+    <span class="card-hint" id="backup-count"></span>
+  </div>
+  <div class="card-body p0" id="backup-list"></div>
+</div>
+{{end}}

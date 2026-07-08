@@ -1,0 +1,3372 @@
+
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML><HEAD><TITLE>Man page of DNSMASQ</TITLE>
+</HEAD><BODY>
+<H1>DNSMASQ</H1>
+Section: Maintenance Commands (8)<BR>Updated: 2025-02-05<BR><A HREF="#index">Index</A>
+<HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+dnsmasq - A lightweight DHCP and caching DNS server.
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>dnsmasq</B>
+
+<I>[OPTION]...</I>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<B>dnsmasq</B>
+
+is a lightweight DNS, TFTP, PXE, router advertisement and DHCP server. It is intended to provide 
+coupled DNS and DHCP service to a LAN.
+<P>
+
+Dnsmasq accepts DNS queries and either answers them from a small, local,
+cache or forwards them to a real, recursive, DNS server. It loads the
+contents of /etc/hosts so that local hostnames
+which do not appear in the global DNS can be resolved and also answers
+DNS queries for DHCP configured hosts. It can also act as the
+authoritative DNS server for one or more domains, allowing local names
+to appear in the global DNS. It can be configured to do DNSSEC
+validation.
+<P>
+
+The dnsmasq DHCP server supports static address assignments and multiple
+networks. It automatically
+sends a sensible default set of DHCP options, and can be configured to
+send any desired set of DHCP options, including vendor-encapsulated
+options. It includes a secure, read-only,
+TFTP server to allow net/PXE boot of DHCP hosts and also supports BOOTP. The PXE support is full featured, and includes a proxy mode which supplies PXE information to clients whilst DHCP address allocation is done by another server.
+<P>
+
+The dnsmasq DHCPv6 server provides the same set of features as the
+DHCPv4 server, and in addition, it includes router advertisements and
+a neat feature which allows naming for clients which use DHCPv4 and
+stateless autoconfiguration only for IPv6 configuration. There is support for doing address allocation (both DHCPv6 and RA) from subnets which are dynamically delegated via DHCPv6 prefix delegation.
+<P>
+
+Dnsmasq is coded with small embedded systems in mind. It aims for the smallest possible memory footprint compatible with the supported functions,  and allows unneeded functions to be omitted from the compiled binary.  
+<A NAME="lbAE">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+Note that in general missing parameters are allowed and switch off
+functions, for instance &quot;--pid-file&quot; disables writing a PID file. On
+BSD, unless the GNU getopt library is linked, the long form of the
+options does not work on the command line; it is still recognised in
+the configuration file.
+<DL COMPACT>
+<DT><B>--test</B>
+
+<DD>
+Read and syntax check configuration file(s). Exit with code 0 if all
+is OK, or a non-zero code otherwise. Do not start up dnsmasq.
+<DT><B>-w, --help</B>
+
+<DD>
+Display all command-line options. 
+<B>--help dhcp </B>
+
+will display known DHCPv4 configuration options, and 
+<B>--help dhcp6 </B>
+
+will display DHCPv6 options.
+<DT><B>-h, --no-hosts</B>
+
+<DD>
+Don't read the hostnames in /etc/hosts.
+<DT><B>-H, --addn-hosts=&lt;file&gt;</B>
+
+<DD>
+Additional hosts file. Read the specified file as well as /etc/hosts. If <B>--no-hosts</B> is given, read
+only the specified file. This option may be repeated for more than one
+additional hosts file. If a directory is given, then read all the files contained in that directory
+in alphabetical order.
+<DT><B>--hostsdir=&lt;path&gt;</B>
+
+<DD>
+Read all the hosts files contained in the directory. New or changed files
+are read automatically and modified and deleted files have removed records
+automatically deleted.
+<DT><B>-E, --expand-hosts</B>
+
+<DD>
+Add the domain to simple names (without a period) in /etc/hosts
+in the same way as for DHCP-derived names. Note that this does not
+apply to domain names in cnames, PTR records, TXT records etc.
+<DT><B>-T, --local-ttl=&lt;time&gt;</B>
+
+<DD>
+When replying with information from /etc/hosts or configuration or the DHCP leases
+file dnsmasq by default sets the time-to-live field to zero, meaning
+that the requester should not itself cache the information. This is
+the correct thing to do in almost all situations. This option allows a
+time-to-live (in seconds) to be given for these replies. This will
+reduce the load on the server at the expense of clients using stale
+data under some circumstances.
+<DT><B>--dhcp-ttl=&lt;time&gt;</B>
+
+<DD>
+As for <B>--local-ttl</B>, but affects only replies with information from DHCP leases. If both are given, <B>--dhcp-ttl</B> applies for DHCP information, and <B>--local-ttl</B> for others. Setting this to zero eliminates the effect of <B>--local-ttl</B> for DHCP.
+<DT><B>--neg-ttl=&lt;time&gt;</B>
+
+<DD>
+Negative replies from upstream servers normally contain time-to-live
+information in SOA records which dnsmasq uses for caching. If the
+replies from upstream servers omit this information, dnsmasq does not
+cache the reply. This option gives a default value for time-to-live
+(in seconds) which dnsmasq uses to cache negative replies even in 
+the absence of an SOA record. 
+<DT><B>--max-ttl=&lt;time&gt;</B>
+
+<DD>
+Set a maximum TTL value that will be handed out to clients. The specified
+maximum TTL will be given to clients instead of the true TTL value if it is 
+lower. The true TTL value is however kept in the cache to avoid flooding 
+the upstream DNS servers.
+<DT><B>--max-cache-ttl=&lt;time&gt;</B>
+
+<DD>
+Set a maximum TTL value for entries in the cache.
+<DT><B>--min-cache-ttl=&lt;time&gt;</B>
+
+<DD>
+Extend short TTL values to the time given when caching them. Note that
+artificially extending TTL values is in general a bad idea, do not do it 
+unless you have a good reason, and understand what you are doing. 
+Dnsmasq limits the value of this option to one hour, unless recompiled.
+<DT><B>--auth-ttl=&lt;time&gt;</B>
+
+<DD>
+Set the TTL value returned in answers from the authoritative server.
+<DT><B>--fast-dns-retry=[&lt;initial retry delay in ms&gt;[,&lt;time to continue retries in ms&gt;]]</B>
+
+<DD>
+Under normal circumstances, dnsmasq relies on DNS clients to do retries; it
+does not generate timeouts itself. Setting this option
+instructs dnsmasq to generate its own retries starting after a delay
+which defaults to 1000ms. If the second parameter is given this controls
+how long the retries will continue for
+otherwise this defaults to 10000ms. Retries are repeated with exponential
+backoff. Using this option increases memory usage and
+network bandwidth. If not otherwise configured, this option is activated
+with the default parameters when <B>--dnssec</B> is set.
+<DT><B>-k, --keep-in-foreground</B>
+
+<DD>
+Do not go into the background at startup but otherwise run as
+normal. This is intended for use when dnsmasq is run under daemontools
+or launchd.
+<DT><B>-d, --no-daemon</B>
+
+<DD>
+Debug mode: don't fork to the background, don't write a pid file,
+don't change user id, generate a complete cache dump on receipt on
+SIGUSR1, log to stderr as well as syslog, don't fork new processes
+to handle TCP queries. Note that this option is for use in debugging
+only, to stop dnsmasq daemonising in production, use 
+<B>--keep-in-foreground.</B>
+
+<DT><B>-q, --log-queries</B>
+
+<DD>
+Log the results of DNS queries handled by dnsmasq. Enable a full cache dump on receipt of SIGUSR1. If the argument &quot;extra&quot; is supplied, ie
+<B>--log-queries=extra</B>
+
+then the log has extra information at the start of each line.
+This consists of a serial number which ties together the log lines associated with an individual query, and the IP address of the requestor. If the argument &quot;proto&quot; is supplied, this shows everything that &quot;extra&quot; does and also the network protocol used to communicate the queries. Logging of only queries to the authoritative server can be configured with
+<B>--log-queries=auth</B>
+
+<DT><B>-8, --log-facility=&lt;facility&gt;</B>
+
+<DD>
+Set the facility to which dnsmasq will send syslog entries, this
+defaults to DAEMON, and to LOCAL0 when debug mode is in operation. If
+the facility given contains at least one '/' character, it is taken to
+be a filename, and dnsmasq logs to the given file, instead of
+syslog. If the facility is '-' then dnsmasq logs to stderr.
+(Errors whilst reading configuration will still go to syslog,
+but all output from a successful startup, and all output whilst
+running, will go exclusively to the file.) When logging to a file,
+dnsmasq will close and reopen the file when it receives SIGUSR2. This 
+allows the log file to be rotated without stopping dnsmasq.
+<DT><B>--log-debug</B>
+
+<DD>
+Enable extra logging intended for debugging rather than information.
+<DT><B>--log-async[=&lt;lines&gt;]</B>
+
+<DD>
+Enable asynchronous logging and optionally set the limit on the
+number of lines
+which will be queued by dnsmasq when writing to the syslog is slow. 
+Dnsmasq can log asynchronously: this
+allows it to continue functioning without being blocked by syslog, and
+allows syslog to use dnsmasq for DNS queries without risking deadlock.
+If the queue of log-lines becomes full, dnsmasq will log the
+overflow, and the number of messages  lost. The default queue length is
+5, a sane value would be 5-25, and a maximum limit of 100 is imposed.
+<DT><B>-x, --pid-file=&lt;path&gt;</B>
+
+<DD>
+Specify an alternate path for dnsmasq to record its process-id in. Normally /var/run/dnsmasq.pid.
+<DT><B>-u, --user=&lt;username&gt;</B>
+
+<DD>
+Specify the userid to which dnsmasq will change after startup. Dnsmasq must normally be started as root, but it will drop root 
+privileges after startup by changing id to another user. Normally this user is &quot;nobody&quot; but that 
+can be over-ridden with this switch.
+<DT><B>-g, --group=&lt;groupname&gt; </B>
+
+<DD>
+Specify the group which dnsmasq will run
+as. The default is &quot;dip&quot;, if available, to facilitate access to
+/etc/ppp/resolv.conf which is not normally world readable.
+<DT><B>-v, --version</B>
+
+<DD>
+Print the version number.
+<DT><B>-p, --port=&lt;port&gt;</B>
+
+<DD>
+Listen on &lt;port&gt; instead of the standard DNS port (53). Setting this
+to zero completely disables DNS function, leaving only DHCP and/or TFTP.
+<DT><B>-P, --edns-packet-max=&lt;size&gt;</B>
+
+<DD>
+Specify the largest EDNS.0 UDP packet which is supported by the DNS
+forwarder. Defaults to 1232, which is the recommended size following the
+DNS flag day in 2020. Only increase if you know what you are doing.
+<DT><B>-Q, --query-port=&lt;query_port&gt;</B>
+
+<DD>
+Send outbound DNS queries from, and listen for their replies on, the
+specific UDP port &lt;query_port&gt; instead of using random ports. NOTE
+that using this option will make dnsmasq less secure against DNS
+spoofing attacks but it may be faster and use less resources.  Setting this option
+to zero makes dnsmasq use a single port allocated to it by the
+OS: this was the default behaviour in versions prior to 2.43.
+<DT><B>--port-limit=&lt;#ports&gt;</B>
+
+<DD>
+By default, when sending a query via random ports to multiple upstream servers or
+retrying a query dnsmasq will use a single random port for all the tries/retries.
+This option allows a larger number of ports to be used, which can increase robustness
+in certain network configurations. Note that increasing this to more than
+two or three can have security and resource implications and should only
+be done with understanding of those.
+<DT><B>--min-port=&lt;port&gt;</B>
+
+<DD>
+Do not use ports less than that given as source for outbound DNS
+queries. Dnsmasq picks random ports as source for outbound queries:
+when this option is given, the ports used will always be larger
+than that specified. Useful for systems behind firewalls. If not specified,
+defaults to 1024.
+<DT><B>--max-port=&lt;port&gt;</B>
+
+<DD>
+Use ports lower than that given as source for outbound DNS queries.
+Dnsmasq picks random ports as source for outbound queries:
+when this option is given, the ports used will always be lower
+than that specified. Useful for systems behind firewalls.
+<DT><B>-i, --interface=&lt;interface name&gt;</B>
+
+<DD>
+Listen only on the specified interface(s). Dnsmasq automatically adds
+the loopback (local) interface to the list of interfaces to use when
+the
+<B>--interface</B>
+
+option  is used. If no
+<B>--interface</B>
+
+or
+<B>--listen-address</B>
+
+options are given dnsmasq listens on all available interfaces except any
+given in
+<B>--except-interface</B>
+
+options. On Linux, when
+<B>--bind-interfaces</B>
+
+or
+<B>--bind-dynamic</B>
+
+are in effect, IP alias interface labels (eg &quot;eth1:0&quot;) are checked, rather than
+interface names. In the degenerate case when an interface has one address, this amounts to the same thing but when an interface has multiple addresses it
+allows control over which of those addresses are accepted.
+The same effect is achievable in default mode by using
+<B>--listen-address.</B>
+
+A simple wildcard, consisting of a trailing '*',
+can be used in
+<B>--interface </B>
+
+and
+<B>--except-interface</B>
+
+options. 
+<DT><B>-I, --except-interface=&lt;interface name&gt;</B>
+
+<DD>
+Do not listen on the specified interface. Note that the order of
+<B>--listen-address</B>
+
+<B>--interface</B>
+
+and
+<B>--except-interface</B>
+
+options does not matter and that 
+<B>--except-interface</B>
+
+options always override the others. The comments about interface labels for
+<B>--listen-address</B>
+
+apply here.
+<DT><B>--auth-server=&lt;domain&gt;,[&lt;interface&gt;|&lt;ip-address&gt;...]</B>
+
+<DD>
+Enable DNS authoritative mode for queries arriving at an interface or address. Note that the interface or address
+need not be mentioned in 
+<B>--interface</B>
+
+or 
+<B>--listen-address</B>
+
+configuration, indeed
+<B>--auth-server</B>
+
+will override these and provide a different DNS service on the
+specified interface. The &lt;domain&gt; is the &quot;glue record&quot;. It should
+resolve in the global DNS to an A and/or AAAA record which points to
+the address dnsmasq is listening on. When an interface is specified,
+it may be qualified with &quot;/4&quot; or &quot;/6&quot; to specify only the IPv4 or IPv6
+addresses associated with the interface. Since any defined authoritative zones are also available as part of the normal recusive DNS service supplied by dnsmasq, it can make sense to have an --auth-server declaration with no interfaces or address, but simply specifying the primary external nameserver.
+<DT><B>--local-service[=net|host]</B>
+
+<DD>
+Without parameter or with net parameter, restricts service to connected network.
+Accept DNS queries only from hosts whose address is on a local subnet,
+ie a subnet for which an interface exists on the server. With host parameter, listens
+only on lo interface and accepts queries from localhost only. This option
+only has effect if there are no <B>--interface</B>, <B>--except-interface</B>,
+<B>--listen-address</B> or <B>--auth-server</B> options. It is intended to be set as
+a default on installation, to allow unconfigured installations to be
+useful but also safe from being used for DNS amplification attacks.
+<DT><B>-2, --no-dhcp-interface=&lt;interface name&gt;</B>
+
+<DD>
+Do not provide DHCP, TFTP or router advertisement on the specified interface, but do provide DNS service.
+<DT><B>--no-dhcpv4-interface=&lt;interface name&gt;</B>
+
+<DD>
+Disable only IPv4 DHCP on the specified interface.
+<DT><B>--no-dhcpv6-interface=&lt;interface name&gt;</B>
+
+<DD>
+Disable IPv6 DHCP and router advertisement on the specified interface.
+<DT><B>-a, --listen-address=&lt;ipaddr&gt;</B>
+
+<DD>
+Listen on the given IP address(es). Both 
+<B>--interface</B>
+
+and
+<B>--listen-address</B>
+
+options may be given, in which case the set of both interfaces and
+addresses is used. Note that if no
+<B>--interface</B>
+
+option is given, but 
+<B>--listen-address</B>
+
+is, dnsmasq will not automatically listen on the loopback
+interface. To achieve this, its IP address, 127.0.0.1, must be
+explicitly given as a 
+<B>--listen-address</B>
+
+option.
+<DT><B>-z, --bind-interfaces</B>
+
+<DD>
+On systems which support it, dnsmasq binds the wildcard address,
+even when it is listening on only some interfaces. It then discards
+requests that it shouldn't reply to. This has the advantage of 
+working even when interfaces come and go and change address. This
+option forces dnsmasq to really bind only the interfaces it is
+listening on. About the only time when this is useful is when 
+running another nameserver (or another instance of dnsmasq) on the
+same machine. Setting this option also enables multiple instances of
+dnsmasq which provide DHCP service to run in the same machine.
+<DT><B>--bind-dynamic</B>
+
+<DD>
+Enable a network mode which is a hybrid between 
+<B>--bind-interfaces</B>
+
+and the default. Dnsmasq binds the address of individual interfaces,
+allowing multiple dnsmasq instances, but if new interfaces or
+addresses appear, it automatically listens on those (subject to any
+access-control configuration). This makes dynamically created
+interfaces work in the same way as the default. Implementing this
+option requires non-standard networking APIs and it is only available
+under Linux. On other platforms it falls-back to <B>--bind-interfaces</B> mode.
+<DT><B>-y, --localise-queries</B>
+
+<DD>
+Return answers to DNS queries from /etc/hosts and <B>--interface-name</B> and <B>--dynamic-host</B> which depend on the interface over which the query was
+received. If a name has more than one address associated with
+it, and at least one of those addresses is on the same subnet as the
+interface to which the query was sent, then return only the
+address(es) on that subnet and return all the available addresses otherwise.
+This allows for a server  to have multiple
+addresses in /etc/hosts corresponding to each of its interfaces, and
+hosts will get the correct address based on which network they are
+attached to. Currently this facility is limited to IPv4.
+<DT><B>-b, --bogus-priv</B>
+
+<DD>
+Bogus private reverse lookups. All reverse lookups for private IP ranges (ie 192.168.x.x, etc)
+which are not found in /etc/hosts or the DHCP leases file are answered
+with &quot;no such domain&quot; rather than being forwarded upstream. The 
+set of prefixes affected is the list given in RFC6303, for IPv4 and IPv6.
+Enabling this also subtly alters DNSSEC validation for reverse lookups in the
+private ranges such that a non-secure DS record is accepted as proof that
+the range is not signed. This works around behaviour by the public DNS services
+which seem not to return validated proof-of-non-existence for DS records in these domains.
+<DT><B>-V, --alias=[&lt;old-ip&gt;]|[&lt;start-ip&gt;-&lt;end-ip&gt;],&lt;new-ip&gt;[,&lt;mask&gt;]</B>
+
+<DD>
+Modify IPv4 addresses returned from upstream nameservers; old-ip is
+replaced by new-ip. If the optional mask is given then any address
+which matches the masked old-ip will be re-written. So, for instance
+<B>--alias=1.2.3.0,6.7.8.0,255.255.255.0 </B>
+
+will map 1.2.3.56 to 6.7.8.56 and 1.2.3.67 to 6.7.8.67. This is what
+Cisco PIX routers call &quot;DNS doctoring&quot;. If the old IP is given as
+range, then only addresses in the range, rather than a whole subnet,
+are re-written. So 
+<B>--alias=192.168.0.10-192.168.0.40,10.0.0.0,255.255.255.0</B>
+
+maps 192.168.0.10-&gt;192.168.0.40 to 10.0.0.10-&gt;10.0.0.40
+<DT><B>-B, --bogus-nxdomain=&lt;ipaddr&gt;[/prefix]</B>
+
+<DD>
+Transform replies which contain the specified address or subnet into &quot;No such
+domain&quot; replies. IPv4 and IPv6 are supported. This is intended to counteract a devious move made by
+Verisign in September 2003 when they started returning the address of
+an advertising web page in response to queries for unregistered names,
+instead of the correct NXDOMAIN response. This option tells dnsmasq to
+fake the correct response when it sees this behaviour. As at Sept 2003
+the IP address being returned by Verisign is 64.94.110.11
+<DT><B>--ignore-address=&lt;ipaddr&gt;[/prefix]</B>
+
+<DD>
+Ignore replies to A or AAAA queries which include the specified address or subnet. 
+No error is generated, dnsmasq simply continues to listen for another reply. 
+This is useful to defeat blocking strategies which rely on quickly supplying a
+forged answer to a DNS request for certain domain, before the correct answer can arrive.
+<DT><B>-f, --filterwin2k</B>
+
+<DD>
+Later versions of windows make periodic DNS requests which don't get sensible answers from
+the public DNS and can cause problems by triggering dial-on-demand links. This flag turns on an option
+to filter such requests. The requests blocked are for records of type ANY
+where the requested name has underscores, to catch LDAP requests, and for
+<B>all</B> records of types SOA and SRV.
+<DT><B>--filter-A</B>
+
+<DD>
+Remove A records from answers. No IPv4 addresses will be returned.
+<DT><B>--filter-AAAA</B>
+
+<DD>
+Remove AAAA records from answers. No IPv6 addresses will be returned.
+<DT><B>--filter-rr=&lt;rrtype&gt;[,&lt;rrtype&gt;...]</B>
+
+<DD>
+Remove records of the specified type(s) from answers. The otherwise-nonsensical --filter-rr=ANY has
+a special meaning: it filters replies to queries for type ANY. Everything other than A, AAAA, MX and CNAME
+records are removed. Since ANY queries with forged source addresses can be used in DNS amplification attacks
+(replies to ANY queries can be large) this defangs such attacks, whilst still supporting the
+one remaining possible use of ANY queries. See RFC 8482 para 4.3 for details.
+<DT><B>--cache-rr=&lt;rrtype&gt;[,&lt;rrtype&gt;...]</B>
+
+<DD>
+By default, dnsmasq caches A, AAAA, CNAME and SRV DNS record types.
+This option adds other record types to the cache. The RR-type can be given
+as a name such as TXT or MX or a decimal number. A single --cache-rr option
+can take a comma-separated list of RR-types and more than one --cache-rr option
+is allowed. Use --cache-rr=ANY to enable caching for all RR-types.
+<DT><B>-r, --resolv-file=&lt;file&gt;</B>
+
+<DD>
+Read the IP addresses of the upstream nameservers from &lt;file&gt;, instead of
+/etc/resolv.conf. For the format of this file see
+<B>resolv.conf</B>(5).
+
+The only lines relevant to dnsmasq are nameserver ones. Dnsmasq can
+be told to poll more than one resolv.conf file, the first file name  specified
+overrides the default, subsequent ones add to the list. This is only
+allowed when polling; the file with the currently latest modification
+time is the one used. 
+<DT><B>-R, --no-resolv</B>
+
+<DD>
+Don't read /etc/resolv.conf. Get upstream servers only from the command
+line or the dnsmasq configuration file.
+<DT><B>-1, --enable-dbus[=&lt;service-name&gt;]</B>
+
+<DD>
+Allow dnsmasq configuration to be updated via DBus method calls. The
+configuration which can be changed is upstream DNS servers (and
+corresponding domains) and cache clear. Requires that dnsmasq has
+been built with DBus support. If the service name is given, dnsmasq
+provides service at that name, rather than the default which is 
+<B>uk.org.thekelleys.dnsmasq</B>
+
+<DT><B>--enable-ubus[=&lt;service-name&gt;]</B>
+
+<DD>
+Enable dnsmasq UBus interface. It sends notifications via UBus on
+DHCPACK and DHCPRELEASE events. Furthermore it offers metrics
+and allows configuration of Linux connection track mark based filtering.
+When DNS query filtering based on Linux connection track marks is enabled
+UBus notifications are generated for each resolved or filtered DNS query.
+Requires that dnsmasq has been built with UBus support. If the service
+name is given, dnsmasq provides service at that namespace, rather than
+the default which is
+<B>dnsmasq</B>
+
+<DT><B>-o, --strict-order</B>
+
+<DD>
+By default, dnsmasq will send queries to any of the upstream servers
+it knows about and tries to favour servers that are known to
+be up. Setting this flag forces dnsmasq to try each query with each
+server strictly in the order they appear in /etc/resolv.conf
+<DT><B>--all-servers</B>
+
+<DD>
+By default, when dnsmasq has more than one upstream server available,
+it will send queries to just one server. Setting this flag forces
+dnsmasq to send all queries to all available servers. The reply from
+the server which answers first will be returned to the original requester.
+<DT><B>--dns-loop-detect</B>
+
+<DD>
+Enable code to detect DNS forwarding loops; ie the situation where a query sent to one 
+of the upstream server eventually returns as a new query to the dnsmasq instance. The
+process works by generating TXT queries of the form &lt;hex&gt;.test and sending them to
+each upstream server. The hex is a UID which encodes the instance of dnsmasq sending the query
+and the upstream server to which it was sent. If the query returns to the server which sent it, then
+the upstream server through which it was sent is disabled and this event is logged. Each time the
+set of upstream servers changes, the test is re-run on all of them, including ones which
+were previously disabled.
+<DT><B>--stop-dns-rebind</B>
+
+<DD>
+Reject (and log) addresses from upstream nameservers which are in the
+private ranges. This blocks an attack where a browser behind a
+firewall is used to probe machines on the local network. For IPv6, the
+private range covers the IPv4-mapped addresses in private space plus
+all link-local (LL) and site-local (ULA) addresses.
+<DT><B>--rebind-localhost-ok</B>
+
+<DD>
+Exempt 127.0.0.0/8 and ::1 from rebinding checks. This address range is
+returned by realtime black hole servers, so blocking it may disable
+these services.
+<DT><B>--rebind-domain-ok=[&lt;domain&gt;]|[[/&lt;domain&gt;/[&lt;domain&gt;/]</B>
+
+<DD>
+Do not detect and block dns-rebind on queries to these domains. The
+argument may be either a single domain, or multiple domains surrounded
+by '/', like the <B>--server</B> syntax, eg.
+<B>--rebind-domain-ok=/domain1/domain2/domain3/</B>
+
+<DT><B>-n, --no-poll</B>
+
+<DD>
+Don't poll /etc/resolv.conf for changes.
+<DT><B>--clear-on-reload</B>
+
+<DD>
+Whenever /etc/resolv.conf is re-read or the upstream servers are set
+via DBus, clear the DNS cache.
+This is useful when new nameservers may have different
+data than that held in cache.
+<DT><B>-D, --domain-needed</B>
+
+<DD>
+Tells dnsmasq to never forward A or AAAA queries for plain names, without dots
+or domain parts, to upstream nameservers. If the name is not known
+from /etc/hosts or DHCP then a &quot;not found&quot; answer is returned.
+<DT><B>-S, --local, --server=[/[&lt;domain&gt;]/[domain/]][&lt;server&gt;[#&lt;port&gt;]][@&lt;interface&gt;][@&lt;source-ip&gt;[#&lt;port&gt;]]</B>
+
+<DD>
+Specify upstream servers directly. Setting this flag does
+not suppress reading of /etc/resolv.conf, use <B>--no-resolv</B> to do that. If one or more
+optional domains are given, that server is used only for those domains
+and they are queried only using the specified server. This is
+intended for private nameservers: if you have a nameserver on your
+network which deals with names of the form
+xxx.internal.thekelleys.org.uk at 192.168.1.1 then giving  the flag 
+<B>--server=/internal.thekelleys.org.uk/192.168.1.1</B>
+
+will send all queries for
+internal machines to that nameserver, everything else will go to the
+servers in /etc/resolv.conf. An empty domain specification,
+<B>// </B>
+
+has the special meaning of &quot;unqualified names only&quot; ie names without any
+dots in them. A non-standard port may be specified as 
+part of the IP
+address using a # character.
+More than one <B>--server</B> flag is allowed, with
+repeated domain or ipaddr parts as required.
+<P>
+More specific domains take precedence over less specific domains, so:
+<B>--server=/google.com/1.2.3.4</B>
+
+<B>--server=/<A HREF="http://www.google.com">www.google.com</A>/2.3.4.5</B>
+
+will send queries for google.com and gmail.google.com to 1.2.3.4, but <A HREF="http://www.google.com">www.google.com</A>
+will go to 2.3.4.5
+<P>
+Matching of domains is normally done on complete labels, so /google.com/ matches google.com and <A HREF="http://www.google.com">www.google.com</A>
+but NOT supergoogle.com. This can be overridden with a * at the start of a pattern only: /*google.com/
+will match google.com and <A HREF="http://www.google.com">www.google.com</A> AND supergoogle.com. The non-wildcard form has priority, so
+if /google.com/ and /*google.com/ are both specified then google.com and <A HREF="http://www.google.com">www.google.com</A> will match /google.com/
+and /*google.com/ will only match supergoogle.com.
+<P>
+For historical reasons, the pattern /.google.com/ is equivalent to /google.com/ if you wish to match any subdomain
+of google.com but NOT google.com itself, use /*.google.com/
+<P>
+The special server address '#' means, &quot;use the standard servers&quot;, so
+<B>--server=/google.com/1.2.3.4</B>
+
+<B>--server=/<A HREF="http://www.google.com">www.google.com</A>/#</B>
+
+will send queries for google.com and its subdomains to 1.2.3.4, except <A HREF="http://www.google.com">www.google.com</A> (and its subdomains) which will
+be forwarded as usual.
+<P>
+Also permitted is a -S
+flag which gives a domain but no IP address; this tells dnsmasq that
+a domain is local and it may answer queries from /etc/hosts or DHCP
+but should never forward queries on that domain to any upstream
+servers.
+<B>--local</B>
+
+is a synonym for
+<B>--server</B>
+
+to make configuration files clearer in this case.
+<P>
+IPv6 addresses may include an %interface scope-id, eg
+fe80::202:a412:4512:7bbf%eth0.
+<P>
+The optional string after the @ character tells dnsmasq how to set the source of
+the queries to this nameserver. It can either be an ip-address, an interface
+name or both. The ip-address should belong to the machine on which dnsmasq is
+running, otherwise this server line will be logged and then ignored. If an
+interface name is given, then queries to the server will be forced via that
+interface; if an ip-address is given then the source address of the queries will
+be set to that address; and if both are given then a combination of ip-address
+and interface name will be used to steer requests to the server.
+The query-port flag is ignored for any servers which have a
+source address specified but the port may be specified directly as
+part of the source address. Forcing queries to an interface is not
+implemented on all platforms supported by dnsmasq.
+<P>
+Upstream servers may be specified with a hostname rather than an IP address.
+In this case, dnsmasq will try to use the system resolver to get the IP address
+of a server during startup. If name resolution fails, starting dnsmasq fails, too.
+If the system's configuration is such that the system resolver sends DNS queries
+through the dnsmasq instance which is starting up then this will time-out and fail.
+<DT><B>--rev-server=&lt;ip-address&gt;[/&lt;prefix-len&gt;][,&lt;server&gt;][#&lt;port&gt;][@&lt;interface&gt;][@&lt;source-ip&gt;[#&lt;port&gt;]]</B>
+
+<DD>
+This is functionally the same as 
+<B>--server, </B>
+
+but provides some syntactic sugar to make specifying address-to-name queries easier. For example
+<B>--rev-server=1.2.3.0/24,192.168.0.1</B>
+
+is exactly equivalent to 
+<B>--server=/3.2.1.in-addr.arpa/192.168.0.1</B>
+
+Allowed prefix lengths are 1-32 (IPv4) and 1-128 (IPv6). If the prefix length is omitted, dnsmasq substitutes either 32 (IPv4) or 128 (IPv6).
+<DT><B>-A, --address=/&lt;domain&gt;[/&lt;domain&gt;...]/[&lt;ipaddr&gt;]</B>
+
+<DD>
+Specify an IP address to return for any host in the given domains.
+A (or AAAA) queries in the domains are never forwarded and always replied to
+with the specified IP address which may be IPv4 or IPv6. To give
+multiple addresses or both IPv4 and IPv6 addresses for a domain, use repeated <B>--address</B> flags.
+Note that /etc/hosts and DHCP leases override this for individual
+names. A common use of this is to redirect the entire doubleclick.net
+domain to some friendly local web server to avoid banner ads. The
+domain specification works in the same way as for <B>--server</B>, with
+the additional facility that <B>/#/</B> matches any domain. Thus
+<B>--address=/#/1.2.3.4</B> will always return <B>1.2.3.4</B> for any
+query not answered from <B>/etc/hosts</B> or DHCP and not sent to an
+upstream nameserver by a more specific <B>--server</B> directive. As for
+<B>--server</B>, one or more domains with no address returns a
+no-such-domain answer, so <B>--address=/example.com/</B> is equivalent to
+<B>--server=/example.com/</B> and returns NXDOMAIN for example.com and
+all its subdomains. An address specified as '#' translates to the NULL
+address of 0.0.0.0 and its IPv6 equivalent of :: so
+<B>--address=/example.com/#</B> will return NULL addresses for example.com and
+its subdomains. This is partly syntactic sugar for <B>--address=/example.com/0.0.0.0</B>
+and <B>--address=/example.com/::</B> but is also more efficient than including both
+as separate configuration lines. Note that NULL addresses normally work in the same way as localhost, so beware that clients looking up these names are likely to end up talking to themselves.
+<P>
+Note that the behaviour for queries which don't match the specified address literal changed in version 2.86.
+Previous versions, configured with (eg) --address=/example.com/1.2.3.4 and then queried for a RR type other than
+A would return a NoData answer. From  2.86, the query is sent upstream. To restore the pre-2.86 behaviour,
+use the configuration --address=/example.com/1.2.3.4 --local=/example.com/
+<DT><B>--ipset=/&lt;domain&gt;[/&lt;domain&gt;...]/&lt;ipset&gt;[,&lt;ipset&gt;...]</B>
+
+<DD>
+Places the resolved IP addresses of queries for one or more domains in
+the specified Netfilter IP set. If multiple setnames are given, then the
+addresses are placed in each of them, subject to the limitations of an
+IP set (IPv4 addresses cannot be stored in an IPv6 IP set and vice
+versa).  Domains and subdomains are matched in the same way as
+<B>--address</B>.
+These IP sets must already exist. See
+<B>ipset</B>(8)
+
+for more details.
+<DT><B>--nftset=/&lt;domain&gt;[/&lt;domain&gt;...]/[(6|4)#[&lt;family&gt;#]&lt;table&gt;#&lt;set&gt;[,[(6|4)#[&lt;family&gt;#]&lt;table&gt;#&lt;set&gt;]...]</B>
+
+<DD>
+Similar to the <B>--ipset</B> option, but accepts one or more nftables 
+sets to add IP addresses into.
+These sets must already exist. See
+<B>nft</B>(8)
+
+for more details. The family, table and set are passed directly to the nft. If the spec starts with 4# or 6# then
+only A or AAAA records respectively are added to the set. Since an nftset can hold only IPv4 or IPv6 addresses, this
+avoids errors being logged for addresses of the wrong type.
+<DT><B>--connmark-allowlist-enable[=&lt;mask&gt;]</B>
+
+<DD>
+Enables filtering of incoming DNS queries with associated Linux connection track marks
+according to individual allowlists configured via a series of <B>--connmark-allowlist</B>
+options. Disallowed queries are not forwarded; they are rejected with a REFUSED error code.
+DNS queries are only allowed if they do not have an associated Linux connection
+track mark, or if the queried domains match the configured DNS patterns for the
+associated Linux connection track mark. If no allowlist is configured for a
+Linux connection track mark, all DNS queries associated with that mark are rejected.
+If a mask is specified, Linux connection track marks are first bitwise ANDed
+with the given mask before being processed.
+<DT><B>--connmark-allowlist=&lt;connmark&gt;[/&lt;mask&gt;][,&lt;pattern&gt;[/&lt;pattern&gt;...]]</B>
+
+<DD>
+Configures the DNS patterns that are allowed in DNS queries associated with
+the given Linux connection track mark.
+If a mask is specified, Linux connection track marks are first bitwise ANDed
+with the given mask before they are compared to the given connection track mark.
+Patterns follow the syntax of DNS names, but additionally allow the wildcard
+character &quot;*&quot; to be used up to twice per label to match 0 or more characters
+within that label. Note that the wildcard never matches a dot (e.g., &quot;*.example.com&quot;
+matches &quot;api.example.com&quot; but not &quot;api.us.example.com&quot;). Patterns must be
+fully qualified, i.e., consist of at least two labels. The final label must not be
+fully numeric, and must not be the &quot;local&quot; pseudo-TLD. A pattern must end with at least
+two literal (non-wildcard) labels.
+Instead of a pattern, &quot;*&quot; can be specified to disable allowlist filtering
+for a given Linux connection track mark entirely.
+<DT><B>-m, --mx-host=&lt;mx name&gt;[[,&lt;hostname&gt;],&lt;preference&gt;]</B>
+
+<DD>
+Return an MX record named &lt;mx name&gt; pointing to the given hostname (if
+given), or
+the host specified in the <B>--mx-target</B> switch
+or, if that switch is not given, the host on which dnsmasq 
+is running. The default is useful for directing mail from systems on a LAN
+to a central server. The preference value is optional, and defaults to
+1 if not given. More than one MX record may be given for a host.
+<DT><B>-t, --mx-target=&lt;hostname&gt;</B>
+
+<DD>
+Specify the default target for the MX record returned by dnsmasq. See
+<B>--mx-host</B>.  If <B>--mx-target</B> is given, but not <B>--mx-host</B>, then dnsmasq
+returns a MX record containing the MX target for MX queries on the 
+hostname of the machine on which dnsmasq is running.
+<DT><B>-e, --selfmx</B>
+
+<DD>
+Return an MX record pointing to itself for each local
+machine. Local machines are those in /etc/hosts or with DHCP leases.
+<DT><B>-L, --localmx</B>
+
+<DD>
+Return an MX record pointing to the host given by <B>--mx-target</B> (or the
+machine on which dnsmasq is running) for each
+local machine. Local machines are those in /etc/hosts or with DHCP
+leases.
+<DT><B>-W, --srv-host=&lt;_service&gt;.&lt;_prot&gt;[.&lt;domain&gt;],[&lt;target&gt;[,&lt;port&gt;[,&lt;priority&gt;[,&lt;weight&gt;]]]]</B>
+
+<DD>
+Return a SRV DNS record. See RFC2782 for details. If not supplied, the
+domain defaults to that given by
+<B>--domain.</B>
+
+The default for the target domain is empty, and the default for port
+is one and the defaults for 
+weight and priority are zero. Be careful if transposing data from BIND
+zone files: the port, weight and priority numbers are in a different
+order. More than one SRV record for a given service/domain is allowed,
+all that match are returned.
+<DT><B>--host-record=&lt;name&gt;[,&lt;name&gt;....],[&lt;IPv4-address&gt;],[&lt;IPv6-address&gt;][,&lt;TTL&gt;]</B>
+
+<DD>
+Add A, AAAA and PTR records to the DNS. This adds one or more names to
+the DNS with associated IPv4 (A) and IPv6 (AAAA) records. A name may
+appear in more than one 
+<B>--host-record</B>
+
+and therefore be assigned more than one address. Only the first
+address creates a PTR record linking the address to the name. This is
+the same rule as is used reading hosts-files. 
+<B>--host-record</B>
+
+options are considered to be read before host-files, so a name
+appearing there inhibits PTR-record creation if it appears in
+hosts-file also. Unlike hosts-files, names are not expanded, even when
+<B>--expand-hosts</B>
+
+is in effect. Short and long names may appear in the same 
+<B>--host-record,</B>
+
+eg. 
+<B>--host-record=laptop,laptop.thekelleys.org,192.168.0.1,1234::100</B>
+
+<P>
+If the time-to-live is given, it overrides the default, which is zero
+or the value of <B>--local-ttl</B>. The value is a positive integer and gives
+the time-to-live in seconds.
+<DT><B>--dynamic-host=&lt;name&gt;,[IPv4-address],[IPv6-address],&lt;interface&gt;</B>
+
+<DD>
+Add A, AAAA and PTR records to the DNS in the same subnet as the specified interface. The address is derived from the network part of each address associated with the interface, and the host part from the specified address. For example
+<B>--dynamic-host=example.com,0.0.0.8,eth0</B>
+
+will, when eth0 has the address 192.168.78.x and netmask 255.255.255.0 give the
+name example.com an A record for 192.168.78.8. The same principle applies to IPv6 addresses. Note that if an interface has more than one address, more than one A or AAAA record will be created. The TTL of the records is always zero, and any changes to interface addresses will be immediately reflected in them.
+<DT><B>-Y, --txt-record=&lt;name&gt;[[,&lt;text&gt;],&lt;text&gt;]</B>
+
+<DD>
+Return a TXT DNS record. The value of TXT record is a set of strings,
+so  any number may be included, delimited by commas; use quotes to put
+commas into a string. Note that the maximum length of a single string
+is 255 characters, longer strings are split into 255 character chunks.
+<DT><B>--ptr-record=&lt;name&gt;[,&lt;target&gt;]</B>
+
+<DD>
+Return a PTR DNS record.
+<DT><B>--naptr-record=&lt;name&gt;,&lt;order&gt;,&lt;preference&gt;,&lt;flags&gt;,&lt;service&gt;,&lt;regexp&gt;[,&lt;replacement&gt;]</B>
+
+<DD>
+Return an NAPTR DNS record, as specified in RFC3403.
+<DT><B>--caa-record=&lt;name&gt;,&lt;flags&gt;,&lt;tag&gt;,&lt;value&gt;</B>
+
+<DD>
+Return a CAA DNS record, as specified in RFC6844.
+<DT><B>--cname=&lt;cname&gt;,[&lt;cname&gt;,]&lt;target&gt;[,&lt;TTL&gt;]</B>
+
+<DD>
+Return a CNAME record which indicates that &lt;cname&gt; is really
+&lt;target&gt;. There is a significant limitation on the target; it must be a
+DNS record which is known to dnsmasq and NOT a DNS record which comes from
+an upstream server. The cname must be unique, but it
+is permissible to have more than one cname pointing to the same target. Indeed
+it's possible to declare multiple cnames to a target in a single line, like so:
+<B>--cname=cname1,cname2,target</B>
+
+<P>
+If the time-to-live is given, it overrides the default, which is zero
+or the value of <B>--local-ttl</B>. The value is a positive integer and gives
+the time-to-live in seconds.
+<DT><B>--dns-rr=&lt;name&gt;,&lt;RR-number&gt;,[&lt;hex data&gt;]</B>
+
+<DD>
+Return an arbitrary DNS Resource Record. The number is the type of the
+record (which is always in the C_IN class). The value of the record is
+given by the hex data, which may be of the form 01:23:45 or 01 23 45 or
+012345 or any mixture of these.
+<DT><B>--interface-name=&lt;name&gt;,&lt;interface&gt;[/4|/6]</B>
+
+<DD>
+Return DNS records associating the name with the address(es) of
+the given interface. This flag specifies an A or AAAA record for the given
+name in the same way as an /etc/hosts line, except that the address is
+not constant, but taken from the given interface. The interface may be
+followed by &quot;/4&quot; or &quot;/6&quot; to specify that only IPv4 or IPv6 addresses
+of the interface should be used. If the interface is
+down, not configured or non-existent, an empty record is returned. The
+matching PTR record is also created, mapping the interface address to
+the name. More than one name may be associated with an interface
+address by repeating the flag; in that case the first instance is used
+for the reverse address-to-name mapping. Note that a name used in 
+<B>--interface-name</B> may not appear in /etc/hosts.
+<DT><B>--synth-domain=&lt;domain&gt;,&lt;address range&gt;[,&lt;prefix&gt;[*]]</B>
+
+<DD>
+Create artificial A/AAAA and PTR records for an address range. The
+records either seqential numbers or the address, with periods (or colons for IPv6) replaced with dashes.
+<P>
+An examples should make this clearer. First sequential numbers.
+<B>--synth-domain=thekelleys.org.uk,192.168.0.50,192.168.0.70,internal-*</B>
+
+results in the name internal-0.thekelleys.org.uk. returning 192.168.0.50, internal-1.thekelleys.org.uk returning 192.168.0.51 and so on. (note the *) The same principle applies to IPv6 addresses (where the numbers may be very large). Reverse lookups from address to name behave as expected.
+<P>
+Second, 
+<B>--synth-domain=thekelleys.org.uk,192.168.0.0/24,internal- (no *)</B>
+
+will result in a query for internal-192-168-0-56.thekelleys.org.uk returning
+192.168.0.56 and a reverse query vice versa. The same applies to IPv6;
+the representation doesn't use the :: compression feature or
+the special representation of V4 mapped IPv6 addresses as these
+can generate illegal domain names, so all domains are of the form
+internal-1000-0000-0000-0000-0000-0000-0000-0008.example.com
+<P>
+The address range can be of the form
+&lt;start address&gt;,&lt;end address&gt; or &lt;ip address&gt;/&lt;prefix-length&gt; in both forms of the option. For IPv6 the start and end addresses
+must fall in the same /64 network, or prefix-length must be greater than or equal to 64 except that shorter prefix lengths than 64 are allowed only if non-sequential names are in use.
+<DT><B>--dumpfile=&lt;path/to/file&gt;</B>
+
+<DD>
+Specify the location of a pcap-format file which dnsmasq uses to dump copies of network packets for debugging purposes. If the file exists when dnsmasq starts, it is not deleted; new packets are added to the end. The file may be a named-pipe which Wireshark is listening to.
+<DT><B>--dumpmask=&lt;mask&gt;</B>
+
+<DD>
+Specify which types of packets should be added to the dumpfile. The argument should be the OR of the bitmasks for each type of packet to be dumped: it can be specified in hex by preceding the number with 0x in  the normal way. Each time a packet is written to the dumpfile, dnsmasq logs the packet sequence and the mask
+representing its type. The current types are: 0x0001 - DNS queries from clients, 0x0002 DNS replies to clients, 0x0004 - DNS queries to upstream, 0x0008 - DNS replies from upstream, 0x0010 - queries send upstream for DNSSEC validation, 0x0020 - replies to queries for DNSSEC validation, 0x0040 - replies to client queries which fail DNSSEC validation, 0x0080 replies to queries for DNSSEC validation which fail validation, 0x1000 - DHCPv4, 0x2000 - DHCPv6, 0x4000 - Router advertisement, 0x8000 - TFTP.
+<DT><B>--add-mac[=base64|text]</B>
+
+<DD>
+Add the MAC address of the requestor to DNS queries which are
+forwarded upstream. This may be used to DNS filtering by the upstream
+server. The MAC address can only be added if the requestor is on the same
+subnet as the dnsmasq server. Note that the mechanism used to achieve this (an EDNS0 option)
+is not yet standardised, so this should be considered
+experimental. Also note that exposing MAC addresses in this way may
+have security and privacy implications. The warning about caching
+given for <B>--add-subnet</B> applies to <B>--add-mac</B> too. An alternative encoding of the
+MAC, as base64, is enabled by adding the &quot;base64&quot; parameter and a human-readable encoding of hex-and-colons is enabled by added the &quot;text&quot; parameter.
+<DT><B>--strip-mac</B>
+
+<DD>
+Remove any MAC address information already in downstream queries before forwarding upstream.  
+<DT><B>--add-cpe-id=&lt;string&gt;</B>
+
+<DD>
+Add an arbitrary identifying string to DNS queries which are
+forwarded upstream.
+<DT><B>--add-subnet[[=[&lt;IPv4 address&gt;/]&lt;IPv4 prefix length&gt;][,[&lt;IPv6 address&gt;/]&lt;IPv6 prefix length&gt;]]</B>
+
+<DD>
+Add a subnet address to the DNS queries which are forwarded
+upstream. If an address is specified in the flag, it will be used,
+otherwise, the address of the requestor will be used. The amount of
+the address forwarded depends on the prefix length parameter: 32 (128
+for IPv6) forwards the whole address, zero forwards none of it but
+still marks the request so that no upstream nameserver will add client
+address information either. The default is zero for both IPv4 and
+IPv6. Note that upstream nameservers may be configured to return
+different results based on this information, but the dnsmasq cache
+does not take account. Caching is therefore disabled for such replies,
+unless the subnet address being added is constant.
+<P>
+For example,
+<B>--add-subnet=24,96</B>
+
+will add the /24 and /96 subnets of the requestor for IPv4 and IPv6 requestors, respectively.
+<B>--add-subnet=1.2.3.4/24</B>
+
+will add 1.2.3.0/24 for IPv4 requestors and ::/0 for IPv6 requestors.
+<B>--add-subnet=1.2.3.4/24,1.2.3.4/24</B>
+
+will add 1.2.3.0/24 for both IPv4 and IPv6 requestors.
+<DT><B>--strip-subnet</B>
+
+<DD>
+Remove any subnet address already present in a downstream query before forwarding it upstream. If --add-subnet is set this also
+ensures that any downstream-provided subnet is replaced by the one added by dnsmasq. Otherwise, dnsmasq will NOT replace an
+existing subnet in the query.
+<DT><B>--umbrella[=[deviceid:&lt;deviceid&gt;][,orgid:&lt;orgid&gt;][,assetid:&lt;id&gt;]]</B>
+
+<DD>
+Embeds the requestor's IP address in DNS queries forwarded upstream.
+If device id or, asset id or organization id are specified, the information is
+included in the forwarded queries and may be able to be used in
+filtering policies and reporting. The order of the id
+attributes is irrelevant, but they must be separated by a comma. Deviceid is
+a sixteen digit hexadecimal number, org and asset ids are decimal numbers.
+<DT><B>-c, --cache-size=&lt;cachesize&gt;</B>
+
+<DD>
+Set the size of dnsmasq's cache. The default is 150 names. Setting the cache size to zero disables caching. Note: huge cache size impacts performance.
+<DT><B>-N, --no-negcache</B>
+
+<DD>
+Disable negative caching. Negative caching allows dnsmasq to remember
+&quot;no such domain&quot; answers from upstream nameservers and answer
+identical queries without forwarding them again. 
+<DT><B>--no-round-robin</B>
+
+<DD>
+Dnsmasq normally permutes the order of A or AAAA records for the same
+name on successive queries, for load-balancing. This turns off that
+behaviour, so that the records are always returned in the order
+that they are received from upstream.
+<DT><B>--do-0x20-encode, --no-0x20-encode</B>
+
+<DD>
+Dnsmasq can scramble the case of letters in DNS queries it sends upstream as a security feature.
+This technique can interact badly with rare broken DNS servers which don't preserve the case
+of the query in their reply. The first time a reply is returned
+which matches the query in all respects except case, a warning
+will be logged. If this coincides with DNS not functioning, it
+is necessary to disable the feature. As at version 2.91, 0x20 encoding
+is disabled by default, and must be enabled with --do-0x20-encode. The default
+may change in the future, so to be sure of its status after an upgrade, set --do-0x20-encode
+or --no-0x20-encode in your config. --no-0x20-encode overrides --do-x20-encode or a future default
+0x20-encode enable.
+<DT><B>--use-stale-cache[=&lt;max TTL excess in s&gt;]</B>
+
+<DD>
+When set, if a DNS name exists in the cache, but its time-to-live has expired, dnsmasq will return the data anyway. (It attempts to refresh the
+data with an upstream query after returning the stale data.) This can improve speed and reliability. It comes at the expense
+of sometimes returning out-of-date data and less efficient cache utilisation, since old data cannot be flushed when its TTL expires, so the cache becomes
+mostly least-recently-used. To mitigate issues caused by massively outdated DNS replies, the maximum overaging of cached records can be specified in seconds
+(defaulting to not serve anything older than one day). Setting the TTL excess time to zero will serve stale cache data regardless how long it has expired.
+<DT><B>-0, --dns-forward-max=&lt;queries&gt;</B>
+
+<DD>
+Set the maximum number of concurrent DNS queries. The default value is
+150, which should be fine for most setups. The only known situation
+where this needs to be increased is when using web-server log file
+resolvers, which can generate large numbers of concurrent queries. This
+parameter actually controls the number of concurrent queries per server group, where a server group is the set of server(s) associated with a single domain. So if a domain has its own server via --server=/example.com/1.2.3.4 and 1.2.3.4 is not responding, but queries for *.example.com cannot go elsewhere, then other queries will not be affected. On configurations with many such server groups and tight resources, this value may need to be reduced.
+<DT><B>--dnssec</B>
+
+<DD>
+Validate DNS replies and cache DNSSEC data. When forwarding DNS queries, dnsmasq requests the 
+DNSSEC records needed to validate the replies. The replies are validated and the result returned as 
+the Authenticated Data bit in the DNS packet. In addition the DNSSEC records are stored in the cache, making 
+validation by clients more efficient. Note that validation by clients is the most secure DNSSEC mode, but for
+clients unable to do validation, use of the AD bit set by dnsmasq is useful, provided that the network between 
+the dnsmasq server and the client is trusted. Dnsmasq must be compiled with HAVE_DNSSEC enabled, and DNSSEC
+trust anchors provided, see 
+<B>--trust-anchor.</B>
+
+Because the DNSSEC validation process uses the cache, it is not
+permitted to reduce the cache size below the default when DNSSEC is
+enabled. The nameservers upstream of dnsmasq must be DNSSEC-capable,
+ie capable of returning DNSSEC records with data. If they are not,
+then dnsmasq will not be able to determine the trusted status of
+answers and this means that DNS service will be entirely broken.
+<DT><B>--trust-anchor=&lt;domain&gt;,[&lt;class&gt;,][&lt;key-tag&gt;,&lt;algorithm&gt;,&lt;digest-type&gt;,&lt;digest&gt;]</B>
+
+<DD>
+Provide DS records to act a trust anchors for DNSSEC
+validation. The class defaults to IN. Typically these will be the DS record(s) for Key Signing
+key(s) (KSK) of the root zone,
+but trust anchors for limited domains are also possible.
+A negative trust anchor (ie. proof that a DS record doesn't exist) may be configured be specifying
+only the name or only the name and class. This can be useful for forcing dnsmasq to treat zones delegated
+using <B>--server=/&lt;domain&gt;/&lt;ip-address&gt;</B> as unsigned. The current
+root-zone trust anchors may be downloaded from <A HREF="https://data.iana.org/root-anchors/root-anchors.xml">https://data.iana.org/root-anchors/root-anchors.xml</A>
+<DT><B>--dnssec-check-unsigned[=no]</B>
+
+<DD>
+As a default, dnsmasq checks that unsigned DNS replies are
+legitimate: this entails possible extra queries even for the majority of DNS
+zones which are not, at the moment, signed. If
+<B>--dnssec-check-unsigned=no</B>
+
+appears in the configuration, then such replies they are assumed to be valid and passed on (without the
+&quot;authentic data&quot; bit set, of course). This does not protect against an
+attacker forging unsigned replies for signed DNS zones, but it is
+fast.
+<P>
+Versions of dnsmasq prior to 2.80 defaulted to not checking unsigned replies, and used 
+<B>--dnssec-check-unsigned</B>
+
+to switch this on. Such configurations will continue to work as before, but those which used the default of no checking will need to be altered to explicitly select no checking. The new default is because switching off checking for unsigned replies is inherently dangerous. Not only does it open the possibility of forged replies, but it allows everything to appear to be working even when the upstream namesevers do not support DNSSEC, and in this case no DNSSEC validation at all is occurring.
+<DT><B>--dnssec-no-timecheck</B>
+
+<DD>
+DNSSEC signatures are only valid for specified time windows, and should be rejected outside those windows. This generates an
+interesting chicken-and-egg problem for machines which don't have a hardware real time clock. For these machines to determine the correct 
+time typically requires use of NTP and therefore DNS, but validating DNS requires that the correct time is already known. Setting this flag
+removes the time-window checks (but not other DNSSEC validation.) only until the dnsmasq process receives SIGINT. The intention is
+that dnsmasq should be started with this flag when the platform determines that reliable time is not currently available. As soon as 
+reliable time is established, a SIGINT should be sent to dnsmasq, which enables time checking, and purges the cache of DNS records
+which have not been thoroughly checked.
+<P>
+Earlier versions of dnsmasq overloaded SIGHUP (which re-reads much configuration) to also enable time validation.
+<P>
+If dnsmasq is run in debug mode (<B>--no-daemon</B> flag) then SIGINT retains its usual meaning of terminating the dnsmasq process.
+<DT><B>--dnssec-timestamp=&lt;path&gt;</B>
+
+<DD>
+Enables an alternative way of checking the validity of the system time for DNSSEC (see <B>--dnssec-no-timecheck</B>). In this case, the
+system time is considered to be valid once it becomes later than the timestamp on the specified file. The file is created and 
+its timestamp set automatically by dnsmasq. The file must be stored on a persistent filesystem, so that it and its mtime are carried 
+over system restarts. The timestamp file is created after dnsmasq has dropped root, so it must be in a location writable by the 
+unprivileged user that dnsmasq runs as.
+<DT><B>--proxy-dnssec</B>
+
+<DD>
+Copy the DNSSEC Authenticated Data bit from upstream servers to downstream clients.  This is an 
+alternative to having dnsmasq validate DNSSEC, but it depends on the security of the network between 
+dnsmasq and the upstream servers, and the trustworthiness of the upstream servers. Note that caching the
+Authenticated Data bit correctly in all cases is not technically possible. If the AD bit is to be relied upon
+when using this option, then the cache should be disabled using --cache-size=0. In most cases, enabling DNSSEC validation
+within dnsmasq is a better option. See --dnssec for details.
+<DT><B>--dnssec-limits=&lt;limit&gt;[,&lt;limit&gt;.......]</B>
+
+<DD>
+Override the default resource limits applied to DNSSEC validation. Cryptographic operations are expensive and crafted domains
+can DoS a DNSSEC validator by forcing it to do hundreds of thousands of such operations. To avoid this, the dnsmasq validation code
+applies limits on how much work will be expended in validation. If any of the limits are exceeded, the validation will fail and the
+domain treated as BOGUS. There are four limits, in order(default values in parens): number a signature validation fails per RRset(20), number of signature validations and
+hash computations per query(200), number of sub-queries to fetch DS and DNSKEY RRsets per query(40), and the number of iterations in a NSEC3 record(150).
+The maximum values reached during validation are stored, and dumped as part of the stats generated by SIGUSR1. Supplying a limit value of 0 leaves the default in place, so
+<B>--dnssec-limits=0,0,20</B> sets the number of sub-queries to 20 whilst leaving the other limits at default values.
+<DT><B>--dnssec-debug</B>
+
+<DD>
+Set debugging mode for the DNSSEC validation, set the Checking Disabled bit on upstream queries, 
+and don't convert replies which do not validate to responses with
+a return code of SERVFAIL. Note that
+setting this may affect DNS behaviour in bad ways, it is not an
+extra-logging flag and should not be set in production.
+<DT><B>--auth-zone=&lt;domain&gt;[,&lt;subnet&gt;[/&lt;prefix length&gt;][,&lt;subnet&gt;[/&lt;prefix length&gt;].....][,exclude:&lt;subnet&gt;[/&lt;prefix length&gt;]].....]</B>
+
+<DD>
+Define a DNS zone for which dnsmasq acts as authoritative server. Locally defined DNS records which are in the domain
+will be served. If subnet(s) are given, A and AAAA records must be in one of the
+specified subnets.
+<P>
+As alternative to directly specifying the subnets, it's possible to
+give the name of an interface, in which case the subnets implied by
+that interface's configured addresses and netmask/prefix-length are
+used; this is useful when using constructed DHCP ranges as the actual
+address is dynamic and not known when configuring dnsmasq. The
+interface addresses may be confined to only IPv6 addresses using
+&lt;interface&gt;/6 or to only IPv4 using &lt;interface&gt;/4. This is useful when
+an interface has dynamically determined global IPv6 addresses which should
+appear in the zone, but RFC1918 IPv4 addresses which should not.
+Interface-name and address-literal subnet specifications may be used
+freely in the same <B>--auth-zone</B> declaration.
+<P>
+It's possible to exclude certain IP addresses from responses. It can be
+used, to make sure that answers contain only global routeable IP
+addresses (by excluding loopback, RFC1918 and ULA addresses).
+<P>
+The subnet(s) are also used to define in-addr.arpa and
+ip6.arpa domains which are served for reverse-DNS queries. If not
+specified, the prefix length defaults to 24 for IPv4 and 64 for IPv6.
+For IPv4 subnets, the prefix length should be have the value 8, 16 or 24
+unless you are familiar with RFC 2317 and have arranged the
+in-addr.arpa delegation accordingly. Note that if no subnets are
+specified, then no reverse queries are answered.
+<DT><B>--auth-soa=&lt;serial&gt;[,&lt;hostmaster&gt;[,&lt;refresh&gt;[,&lt;retry&gt;[,&lt;expiry&gt;]]]]</B>
+
+<DD>
+Specify fields in the SOA record associated with authoritative
+zones. Note that this is optional, all the values are set to sane defaults.
+<DT><B>--auth-sec-servers=&lt;domain&gt;[,&lt;domain&gt;[,&lt;domain&gt;...]]</B>
+
+<DD>
+Specify any secondary servers for a zone for which dnsmasq is
+authoritative. These servers must be configured to get zone data from
+dnsmasq by zone transfer, and answer queries for the same
+authoritative zones as dnsmasq.
+<DT><B>--auth-peer=&lt;ip-address&gt;[,&lt;ip-address&gt;[,&lt;ip-address&gt;...]]</B>
+
+<DD>
+Specify the addresses of secondary servers which are allowed to
+initiate zone transfer (AXFR) requests for zones for which dnsmasq is
+authoritative. If this option is not given but --auth-sec-servers is,
+then AXFR requests will be
+accepted from any secondary. Specifying
+<B>--auth-peer</B>
+
+without
+<B>--auth-sec-servers</B>
+
+enables zone transfer but does not advertise the secondary in NS records returned by dnsmasq.
+<DT><B>--conntrack</B>
+
+<DD>
+Read the Linux connection track mark associated with incoming DNS
+queries and set the same mark value on upstream traffic used to answer
+those queries. This allows traffic generated by dnsmasq to be
+associated with the queries which cause it, useful for bandwidth
+accounting and firewalling. Dnsmasq must have conntrack support
+compiled in and the kernel must have conntrack support
+included and configured. This option cannot be combined with
+<B>--query-port.</B>
+
+<DT><B>-F, --dhcp-range=[tag:&lt;tag&gt;[,tag:&lt;tag&gt;],][set:&lt;tag&gt;,]&lt;start-addr&gt;[,&lt;end-addr&gt;|&lt;mode&gt;[,&lt;netmask&gt;[,&lt;broadcast&gt;]]][,&lt;lease time&gt;]</B>
+
+<DD>
+<DT><B>-F, --dhcp-range=[tag:&lt;tag&gt;[,tag:&lt;tag&gt;],][set:&lt;tag&gt;,]&lt;start-IPv6addr&gt;[,&lt;end-IPv6addr&gt;|constructor:&lt;interface&gt;][,&lt;mode&gt;][,&lt;prefix-len&gt;][,&lt;lease time&gt;]</B>
+
+<DD>
+<P>
+Enable the DHCP server. Addresses will be given out from the range
+&lt;start-addr&gt; to &lt;end-addr&gt; and from statically defined addresses given
+in 
+<B>--dhcp-host</B>
+
+options. If the lease time is given, then leases
+will be given for that length of time. The lease time is in seconds,
+or minutes (eg 45m) or hours (eg 1h) or days (2d) or weeks (1w) or &quot;infinite&quot;. If not given,
+the default lease time is one hour for IPv4 and one day for IPv6. The
+minimum lease time is two minutes. For IPv6 ranges, the lease time
+maybe &quot;deprecated&quot;; this sets the preferred lifetime sent in a DHCP
+lease or router advertisement to zero, which causes clients to use
+other addresses, if available, for new connections as a prelude to renumbering.
+<P>
+This option may be repeated, with different addresses, to enable DHCP
+service to more than one network. For directly connected networks (ie,
+networks on which the machine running dnsmasq has an interface) the
+netmask is optional: dnsmasq will determine it from the interface
+configuration. For networks which receive DHCP service via a relay
+agent, dnsmasq cannot determine the netmask itself, so it should be
+specified, otherwise dnsmasq will have to guess, based on the class (A, B or
+C) of the network address. The broadcast address is
+always optional. It is always
+allowed to have more than one <B>--dhcp-range</B> in a single subnet.
+<P>
+For IPv6, the parameters are slightly different: instead of netmask
+and broadcast address, there is an optional prefix length which must
+be equal to or larger then the prefix length on the local interface. If not
+given, this defaults to 64. Unlike the IPv4 case, the prefix length is not
+automatically derived from the interface configuration. The minimum
+size of the prefix length is 64.
+<P>
+IPv6 (only) supports another type of range. In this, the start address and optional end address contain only the network part (ie ::1) and they are followed by
+<B>constructor:&lt;interface&gt;.</B>
+
+This forms a template which describes how to create ranges, based on the addresses assigned to the interface. For instance
+<P>
+<B>--dhcp-range=::1,::400,constructor:eth0</B>
+
+<P>
+will look for addresses on
+eth0 and then create a range from &lt;network&gt;::1 to &lt;network&gt;::400. If
+the interface is assigned more than one network, then the
+corresponding ranges will be automatically created, and then
+deprecated and finally removed again as the address is deprecated and
+then deleted. The interface name may have a final &quot;*&quot; wildcard. Note
+that just any address on eth0 will not do: it must not be an
+autoconfigured or privacy address, or be deprecated.
+<P>
+If a <B>--dhcp-range</B> is only being used for stateless DHCP and/or SLAAC,
+then the address can be simply ::
+<P>
+<B>--dhcp-range=::,constructor:eth0</B>
+
+<P>
+<P>
+The optional 
+<B>set:&lt;tag&gt; </B>
+
+sets an alphanumeric label which marks this network so that
+DHCP options may be specified on a per-network basis.
+When it is prefixed with 'tag:' instead, then its meaning changes from setting
+a tag to matching it. Only one tag may be set, but more than one tag
+may be matched.
+<P>
+The optional &lt;mode&gt; keyword may be 
+<B>static</B>
+
+which tells dnsmasq to enable DHCP for the network specified, but not
+to dynamically allocate IP addresses: only hosts which have static
+addresses given via 
+<B>--dhcp-host</B>
+
+or from /etc/ethers will be served. A static-only subnet with address
+all zeros may be used as a &quot;catch-all&quot; address to enable replies to all
+Information-request packets on a subnet which is provided with
+stateless DHCPv6, ie
+<B>--dhcp-range=::,static</B>
+
+<P>
+For IPv4, the &lt;mode&gt; may be 
+<B>proxy</B>
+
+in which case dnsmasq will provide proxy-DHCP on the specified
+subnet. (See 
+<B>--pxe-prompt</B>
+
+and 
+<B>--pxe-service</B>
+
+for details.)
+<P>
+For IPv6, the mode may be some combination of
+<B>ra-only, slaac, ra-names, ra-stateless, ra-advrouter, off-link.</B>
+
+<P>
+<B>ra-only</B>
+
+tells dnsmasq to offer Router Advertisement only on this subnet,
+and not DHCP. 
+<P>
+<B>slaac</B>
+
+tells dnsmasq to offer Router Advertisement on this subnet and to set
+the A bit in the router advertisement, so that the client will use
+SLAAC addresses. When used with a DHCP range or static DHCP address
+this results in the client having both a DHCP-assigned and a SLAAC
+address.
+<P>
+<B>ra-stateless</B>
+
+sends router advertisements with the O and A bits set, and provides a
+stateless DHCP service. The client will use a SLAAC address, and use
+DHCP for other configuration information.
+<P>
+<B>ra-names</B>
+
+enables a mode
+which gives DNS names to dual-stack hosts which do SLAAC for
+IPv6. Dnsmasq uses the host's IPv4 lease to derive the name, network
+segment and MAC address and assumes that the host will also have an
+IPv6 address calculated using the SLAAC algorithm, on the same network
+segment. The address is pinged, and if a reply is received, an AAAA
+record is added to the DNS for this IPv6
+address. Note that this is only happens for directly-connected
+networks, (not one doing DHCP via a relay) and it will not work 
+if a host is using privacy extensions. 
+<B>ra-names</B>
+
+can be combined  with 
+<B>ra-stateless</B>
+
+and
+<B>slaac.</B>
+
+<P>
+<B>ra-advrouter</B>
+
+enables a mode where router address(es) rather than prefix(es) are included in the advertisements.
+This is described in RFC-3775 section 7.2 and is used in mobile IPv6. In this mode the interval option
+is also included, as described in RFC-3775 section 7.3.
+<P>
+<B>off-link</B>
+
+tells dnsmasq to advertise the prefix without the on-link (aka L) bit set.
+<P>
+<DT><B>-G, --dhcp-host=[&lt;hwaddr&gt;][,id:&lt;client_id&gt;|*][,set:&lt;tag&gt;][,tag:&lt;tag&gt;][,&lt;ipaddr&gt;][,&lt;hostname&gt;][,&lt;lease_time&gt;][,ignore]</B>
+
+<DD>
+Specify per host parameters for the DHCP server. This allows a machine
+with a particular hardware address to be always allocated the same
+hostname, IP address and lease time. A hostname specified like this
+overrides any supplied by the DHCP client on the machine. It is also
+allowable to omit the hardware address and include the hostname, in
+which case the IP address and lease times will apply to any machine
+claiming that name. For example 
+<B>--dhcp-host=00:20:e0:3b:13:af,wap,infinite </B>
+
+tells dnsmasq to give
+the machine with hardware address 00:20:e0:3b:13:af the name wap, and
+an infinite DHCP lease. 
+<B>--dhcp-host=lap,192.168.0.199 </B>
+
+tells
+dnsmasq to always allocate the machine lap the IP address
+192.168.0.199. 
+<P>
+Addresses allocated like this are not constrained to be
+in the range given by the <B>--dhcp-range</B> option, but they must be in
+the same subnet as some valid dhcp-range.  For
+subnets which don't need a pool of dynamically allocated addresses,
+use the &quot;static&quot; keyword in the <B>--dhcp-range</B> declaration.
+<P>
+It is allowed to use client identifiers (called client
+DUID in IPv6-land) rather than
+hardware addresses to identify hosts by prefixing with 'id:'. Thus: 
+<B>--dhcp-host=id:01:02:03:04,..... </B>
+
+refers to the host with client identifier 01:02:03:04. It is also
+allowed to specify the client ID as text, like this:
+<B>--dhcp-host=id:clientidastext,..... </B>
+
+<P>
+A single
+<B>--dhcp-host</B>
+
+may contain an IPv4 address or one or more IPv6 addresses, or both. IPv6 addresses must be bracketed by square brackets thus:
+<B>--dhcp-host=laptop,[1234::56]</B>
+
+IPv6 addresses may contain only the host-identifier part:
+<B>--dhcp-host=laptop,[::56]</B>
+
+in which case they act as wildcards in constructed DHCP ranges, with
+the appropriate network part inserted. For IPv6, an address may include a prefix length:
+<B>--dhcp-host=laptop,[1234:50/126]</B>
+
+which (in this case) specifies four addresses, 1234::50 to 1234::53. This (an the ability
+to specify multiple addresses) is useful
+when a host presents either a consistent name or hardware-ID, but varying DUIDs, since it allows
+dnsmasq to honour the static address allocation but assign a different address for each DUID. This
+typically occurs when chain netbooting, as each stage of the chain gets in turn allocates an address.
+<P>
+Note that in IPv6 DHCP, the hardware address may not be
+available, though it normally is for direct-connected clients, or
+clients using DHCP relays which support RFC 6939.
+<P>
+<P>
+For DHCPv4, the special option <B>id:*</B> means &quot;ignore any client-id 
+and use MAC addresses only.&quot; This is useful when a client presents a client-id sometimes 
+but not others.
+<P>
+If a name appears in /etc/hosts, the associated address can be
+allocated to a DHCP lease, but only if a 
+<B>--dhcp-host</B>
+
+option specifying the name also exists. Only one hostname can be
+given in a 
+<B>--dhcp-host</B>
+
+option, but aliases are possible by using CNAMEs. (See 
+<B>--cname</B>
+
+). Note that /etc/hosts is NOT used when the DNS server side of dnsmasq
+is disabled by setting the DNS server port to zero.
+<P>
+More than one
+<B>--dhcp-host</B>
+
+can be associated (by name, hardware address or UID) with a host. Which one is used
+(and therefore which address is allocated by DHCP and appears in the DNS) depends
+on the subnet on which the host last obtained a DHCP lease:
+the
+<B>--dhcp-host</B>
+
+with an address within the subnet is used. If more than one address is within the subnet,
+the result is undefined. A corollary to this is that the name associated with a host using
+<B>--dhcp-host</B>
+
+does not appear in the DNS until the host obtains a DHCP lease.
+<P>
+<P>
+The special keyword <B>ignore</B> tells dnsmasq never to offer a DHCP lease
+to a machine. The machine
+can be specified by hardware address, client ID or hostname. For
+example: <B>--dhcp-host=00:20:e0:3b:13:af,ignore</B>. 
+This can be useful when there is another DHCP server on the network which should
+be used by some machines.
+<P>
+The <B>set:&lt;tag&gt;</B> construct sets the tag
+whenever this <B>--dhcp-host</B> directive is in use. This can be used to
+selectively send DHCP options just for this host. More than one tag
+can be set in a <B>--dhcp-host</B> directive (but not in other places where
+<B>set:&lt;tag&gt;</B> is allowed). When a host matches any
+<B>--dhcp-host</B> directive (or one implied by /etc/ethers) then the special
+tag <B>known</B> is set. This allows dnsmasq to be configured to
+ignore requests from unknown machines using
+<B>--dhcp-ignore=tag:!known</B>.
+If the host matches only a <B>--dhcp-host</B> directive which cannot
+be used because it specifies an address on a different subnet, the tag <B>known-othernet</B> is set.
+<P>
+The <B>tag:&lt;tag&gt;</B> construct filters which dhcp-host directives are used. More than
+one tag can be provided. In this case, the request must match all tags. Tagged
+directives are used in preference to untagged ones. Note that one of &lt;hwaddr&gt;,
+&lt;client_id&gt; or &lt;hostname&gt; still must be specified (can be a wildcard).
+<P>
+Ethernet addresses (but not client-ids) may have
+wildcard bytes, so for example 
+<B>--dhcp-host=00:20:e0:3b:13:*,ignore </B>
+
+will cause dnsmasq to ignore the given range of hardware addresses. Note that
+the &quot;*&quot; will need to be escaped or quoted on a command line, but not
+in the configuration file.
+<P>
+Hardware addresses normally match any
+network (ARP) type, but it is possible to restrict them to a single
+ARP type by preceding them with the ARP-type (in HEX) and &quot;-&quot;. so 
+<B>--dhcp-host=06-00:20:e0:3b:13:af,1.2.3.4 </B>
+
+will only match a
+Token-Ring hardware address, since the ARP-address type for token ring
+is 6. 
+<P>
+As a special case, in DHCPv4, it is possible to include more than one
+hardware address. eg:
+<B>--dhcp-host=11:22:33:44:55:66,12:34:56:78:90:12,192.168.0.2</B>.
+This allows an IP address to be associated with
+multiple hardware addresses, and gives dnsmasq permission to abandon a
+DHCP lease to one of the hardware addresses when another one asks for
+a lease. Beware that this is a dangerous thing to do: it will only
+work reliably if only one of the hardware addresses is active at any
+time and there is no way for dnsmasq to enforce this. It is, for instance,
+useful to allocate a stable IP address to a laptop which
+has both wired and wireless interfaces.
+<DT><B>--dhcp-hostsfile=&lt;path&gt;</B>
+
+<DD>
+Read DHCP host information from the specified file. If a directory
+is given, then read all the files contained in that directory in alphabetical order. The file contains 
+information about one host per line. The format of a line is the same
+as text to the right of '=' in <B>--dhcp-host</B>. The advantage of storing DHCP host information
+in this file is that it can be changed without re-starting dnsmasq:
+the file will be re-read when dnsmasq receives SIGHUP.
+<DT><B>--dhcp-optsfile=&lt;path&gt;</B>
+
+<DD>
+Read DHCP option information from the specified file.  If a directory
+is given, then read all the files contained in that directory in alphabetical order. The advantage of 
+using this option is the same as for <B>--dhcp-hostsfile</B>: the
+<B>--dhcp-optsfile</B> will be re-read when dnsmasq receives SIGHUP. Note that
+it is possible to encode the information in a
+<B>--dhcp-boot</B>
+
+flag as DHCP options, using the options names bootfile-name,
+server-ip-address and tftp-server. This allows these to be included
+in a <B>--dhcp-optsfile</B>.
+<DT><B>--dhcp-hostsdir=&lt;path&gt;</B>
+
+<DD>
+This is equivalent to <B>--dhcp-hostsfile</B>, except for the following. The path MUST be a
+directory, and not an individual file. Changed or new files within
+the directory are read automatically, without the need to send SIGHUP.
+If a file is deleted or changed after it has been read by dnsmasq, then the
+host record it contained will remain until dnsmasq receives a SIGHUP, or 
+is restarted; ie host records are only added dynamically. The order in which the
+files in a directory are read is not defined.
+<DT><B>--dhcp-optsdir=&lt;path&gt;</B>
+
+<DD>
+This is equivalent to <B>--dhcp-optsfile</B>, with the differences noted for <B>--dhcp-hostsdir</B>.
+<DT><B>-Z, --read-ethers</B>
+
+<DD>
+Read /etc/ethers for information about hosts for the DHCP server. The
+format of /etc/ethers is a hardware address, followed by either a
+hostname or dotted-quad IP address. When read by dnsmasq these lines
+have exactly the same effect as
+<B>--dhcp-host</B>
+
+options containing the same information. /etc/ethers is re-read when 
+dnsmasq receives SIGHUP. IPv6 addresses are NOT read from /etc/ethers.
+<DT><B>-O, --dhcp-option=[tag:&lt;tag&gt;,[tag:&lt;tag&gt;,]][encap:&lt;opt&gt;,][vi-encap:&lt;enterprise&gt;,][vendor:[&lt;vendor-class&gt;],][&lt;opt&gt;|option:&lt;opt-name&gt;|option6:&lt;opt&gt;|option6:&lt;opt-name&gt;],[&lt;value&gt;[,&lt;value&gt;]]</B>
+
+<DD>
+Send various extra options to DHCP clients. By default,
+dnsmasq sends some standard options to DHCP clients, the netmask and
+broadcast address are set to the same as the host running dnsmasq, and
+the DNS server and default route are set to the address of the machine
+running dnsmasq. (Equivalent rules apply for IPv6.) If the domain name option has been set, that is sent.
+This configuration allows these defaults to be overridden,
+or other options specified. The option to be sent may be given as a
+decimal number or as <B>option:&lt;option-name&gt;</B>. 
+<P>
+Option numbers are
+specified in RFC2132 and subsequent RFCs. The set of option-names
+known by dnsmasq can be discovered by running <B>dnsmasq --help dhcp</B>.
+For example, to set the default route option to 192.168.4.4, use 
+<B>--dhcp-option=3,192.168.4.4</B> or 
+<B>--dhcp-option=option:router,192.168.4.4</B> 
+and to set the time-server address to 192.168.0.4, use
+<B>--dhcp-option=42,192.168.0.4</B> or
+<B>--dhcp-option=option:ntp-server,192.168.0.4</B>.
+The special address 0.0.0.0 means &quot;the address of the system running dnsmasq&quot;.
+<P>
+An option without data is valid, and includes just the option without data.
+(There is only one option with a zero length data field currently defined for DHCPv4, 80:rapid commit, so this feature is not very useful in practice). Options for which dnsmasq normally
+provides default values can be omitted by defining the option with no data. These are
+netmask, broadcast, router, DNS server, domainname and hostname. Thus, for DHCPv4
+<B>--dhcp-option = option:router</B>
+
+will result in no router option being sent, rather than the default of the host on which dnsmasq is running. For DHCPv6, the same is true of the options DNS server and refresh time.
+<P>
+<P>
+Data types allowed are comma separated
+dotted-quad IPv4 addresses, []-wrapped IPv6 addresses, a decimal number, colon-separated hex digits
+and a text string. If the optional tags are given then
+this option is only sent when all the tags are matched.
+<P>
+Special processing is done on a text argument for option 119, to
+conform with RFC 3397. Text or dotted-quad IP addresses as arguments
+to option 120 are handled as per RFC 3361. Dotted-quad IP addresses 
+which are followed by a slash and then a netmask size are encoded as
+described in RFC 3442.
+<P>
+IPv6 options are specified using the <B>option6:</B>
+keyword, followed by the option number or option name. The IPv6 option
+name space is disjoint from the IPv4 option name space. IPv6 addresses
+in options must be bracketed with square brackets, eg. 
+<B> --dhcp-option=option6:ntp-server,[1234::56]</B>. 
+For IPv6, [::] means &quot;the global address of
+the machine running dnsmasq&quot;, whilst [fd00::] is replaced with the
+ULA, if it exists, and [fe80::] with the link-local address.
+<P>
+Be careful: data-type suitability for the option number sent is not checked.
+It is quite possible to persuade dnsmasq to generate illegal DHCP packets with
+injudicious use of this flag. 
+When the value is a decimal number, dnsmasq must determine how 
+large the data item is. It does this by examining the option number and/or the
+value, but can be overridden by appending a single letter flag as follows:
+b = one byte, s = two bytes, i = four bytes. This is mainly useful with 
+encapsulated vendor class options (see below) where dnsmasq cannot
+determine data size from the option number. Option data which
+consists solely of periods and digits will be interpreted by dnsmasq
+as an IP address, and inserted into an option as such. To force a
+literal string, use quotes. For instance when using option 66 to send
+a literal IP address as TFTP server name, it is necessary to do 
+<B>--dhcp-option=66,&quot;1.2.3.4&quot;</B>.
+<P>
+Encapsulated Vendor-class options may also be specified (IPv4 only) using
+<B>--dhcp-option</B>: for instance
+<B>--dhcp-option=vendor:PXEClient,1,0.0.0.0 </B>
+
+sends the encapsulated vendor
+class-specific option &quot;mftp-address=0.0.0.0&quot; to any client whose
+vendor-class matches &quot;PXEClient&quot;. The vendor-class matching is
+substring based (see <B>--dhcp-vendorclass</B> for details). If a
+vendor-class option (number 60) is sent by dnsmasq, then that is used 
+for selecting encapsulated options in preference to any sent by the
+client. It is
+possible to omit the vendorclass completely;
+<B>--dhcp-option=vendor:,1,0.0.0.0</B>
+
+in which case the encapsulated option is always sent. 
+<P>
+Options may be encapsulated (IPv4 only) within other options: for instance
+<B>--dhcp-option=encap:175, 190, iscsi-client0</B>
+
+will send option 175, within which is the option 190. If multiple
+options are given which are encapsulated with the same option number
+then they will be correctly combined into one encapsulated option.
+encap: and vendor: may not both be set in the same <B>--dhcp-option</B>.
+<P>
+The final variant on encapsulated options is &quot;Vendor-Identifying
+Vendor Options&quot; as specified by RFC3925. These are denoted like this: 
+<B>--dhcp-option=vi-encap:2, 10, text</B>
+
+The number in the vi-encap: section is the IANA enterprise number
+used to identify this option. This form of encapsulation is supported
+in IPv6.
+<P>
+The address 0.0.0.0 is not treated specially in
+encapsulated options.
+<DT><B>--dhcp-option-force=[tag:&lt;tag&gt;,[tag:&lt;tag&gt;,]][encap:&lt;opt&gt;,][vi-encap:&lt;enterprise&gt;,][vendor:[&lt;vendor-class&gt;],]&lt;opt&gt;,[&lt;value&gt;[,&lt;value&gt;]]</B>
+
+<DD>
+This works in exactly the same way as
+<B>--dhcp-option</B>
+
+except that the option will always be sent, even if the client does
+not ask for it in the parameter request list. This is sometimes
+needed, for example when sending options to PXELinux.
+<DT><B>--dhcp-option-pxe=[tag:&lt;tag&gt;,[tag:&lt;tag&gt;,]][encap:&lt;opt&gt;,][vi-encap:&lt;enterprise&gt;,]&lt;opt&gt;,[&lt;value&gt;[,&lt;value&gt;]]</B>
+
+<DD>
+A variant of --dhcp-option which defines options only sent in reply to PXE clients. In addition, such options are
+sent in reply to PXE clients when dnsmasq is acting as a PXE proxy, unlike other options. A typical use-case is option 175, sent to iPXE.
+<DT><B>--dhcp-no-override</B>
+
+<DD>
+(IPv4 only) Disable re-use of the DHCP servername and filename fields as extra
+option space. If it can, dnsmasq moves the boot server and filename
+information (from <B>--dhcp-boot</B>) out of their dedicated fields into
+DHCP options. This make extra space available in the DHCP packet for
+options but can, rarely, confuse old or broken clients. This flag
+forces &quot;simple and safe&quot; behaviour to avoid problems in such a case.
+<DT><B>--leasequery[=&lt;addr&gt;[/&lt;prefix&gt;]]</B>
+
+<DD>
+Enable RFC 4388 leasequery. The dnsmasq DHCP server will answer LEASEQUERY messages from DHCP relays
+when this option is given. If an address or subnet is given, only queries from a relay at that source are allowed. Repeat
+the --leasequery option to specify multiple allowed sources.
+To correctly answer lease queries it is necessary to store extra data in
+the lease database, and this is also enabled by the <B>--leasequery</B> option. The extra fields
+(agent-info and vendorclass) are stored in the leases file in a somewhat backwards compatible manner.
+Enabling and then disabling leasequery will not cause problems; the extra information will be aged
+out of the database. However, enabling leasequery in release 2.92 or later, storing leases
+which come via DHCP relays which add option-82 agent-info data, and then moving back to a pre-2.92 dnsmasq
+binary may cause problems reading the leases file. As of release 2.92, leasequery is only supported for DHCPv4.
+<DT><B>--dhcp-relay=&lt;local address&gt;[,&lt;server address&gt;[#&lt;server port&gt;]][,&lt;interface]</B>
+
+<DD>
+Configure dnsmasq to do DHCP relay. The local address is an address
+allocated to an interface on the host running dnsmasq. All DHCP
+requests arriving on that interface will be relayed to a remote DHCP
+server at the server address. It is possible to relay from a single local
+address to multiple remote servers by using multiple <B>--dhcp-relay</B>
+configs with the same local address and different server
+addresses. A server address must be an IP literal address, not a
+domain name. If the server address is omitted, the request will be
+forwarded by broadcast (IPv4) or multicast (IPv6). In this case the interface
+must be given and not be wildcard. The server address may specify a non-standard
+port to relay to. If this is used then <B>--dhcp-proxy</B> should likely also be set,
+otherwise parts of the DHCP conversation which do not pass through the relay
+will be delivered to the wrong port.
+<P>
+Access control for DHCP clients has the same rules as for the DHCP
+server, see <B>--interface</B>, <B>--except-interface</B>, etc. The optional
+interface name in the <B>--dhcp-relay</B> config has a different function: it
+controls on which interface DHCP replies from the server will be
+accepted. This is intended for configurations which have three
+interfaces: one being relayed from, a second connecting the DHCP
+server, and a third untrusted network, typically the wider
+internet. It avoids the possibility of spoof replies arriving via this
+third interface.
+<P>
+It is allowed to have dnsmasq act as a DHCP server on one set of
+interfaces and relay from a disjoint set of interfaces. Note that
+whilst it is quite possible to write configurations which appear to
+act as a server and a relay on the same interface, this is not
+supported: the relay function will take precedence.
+<P>
+Both DHCPv4 and DHCPv6 relay is supported. It's not possible to relay
+DHCPv4 to a DHCPv6 server or vice-versa.
+<P>
+The DHCP relay function for IPv6 includes the ability to snoop
+prefix-delegation from relayed DHCP transactions. See
+<B>--dhcp-script</B>
+
+for details.
+<DT><B>--dhcp-split-relay=&lt;local address&gt;,[&lt;server address&gt;[#&lt;server port&gt;]],&lt;server-facing-interface&gt;|&lt;server-facing-address&gt;</B>
+
+<DD>
+A usefully enhanced version of DHCPv4 relay. IPv4 DHCP normally uses a single address
+for two functions; it is used by the DHCP server to determine which network to allocate
+an address on, and it is used as the address of the relay to which the server sends packets.
+<P>
+This version of DHCP relay splits these functions. It uses the address of the server-facing relay
+interface or a directly-specified address as the address that the server talks to. The address of the client-facing interface
+(the first item in the config) is used as to determine the client's subnet. The
+local address is also used as server-ID override so that the client always sends requests
+via the relay. The effect of this is that server doesn't require
+a route to the client network and the clients don't require a route to the server.
+<P>
+The third parameter is mandatory. If it is an interface name it cannot be a wildcard and the same filtering as described in
+--dhcp-relay applies; answers from the server must arrve via the specified interface. If the third parameter
+is an IP address it must be an address of a local interface which is routable from the server; In this case no filtering
+is done, the reply packets can arrive via any route.
+<P>
+If setting up a network where the client networks have limited routing, be careful
+about configuring the DHCP server. Dnsmasq, as DHCP server, will set the default route to the
+client-facing relay interface unless explicitly configured: that is a sensible default.
+The normal default DNS server (the same address as the DHCP server)
+will not be appropriate when there is no route bewteen the
+two, so this will have to be explicitly configured. 
+<DT><B>-U, --dhcp-vendorclass=set:&lt;tag&gt;,[enterprise:&lt;IANA-enterprise number&gt;,]&lt;vendor-class&gt;</B>
+
+<DD>
+Map from a vendor-class string to a tag. Most DHCP clients provide a 
+&quot;vendor class&quot; which represents, in some sense, the type of host. This option 
+maps vendor classes to tags, so that DHCP options may be selectively delivered
+to different classes of hosts. For example 
+<B>--dhcp-vendorclass=set:printers,Hewlett-Packard JetDirect</B>
+
+will allow options to be set only for HP printers like so:
+<B>--dhcp-option=tag:printers,3,192.168.4.4 </B>
+
+The vendor-class string is
+substring matched against the vendor-class supplied by the client, to
+allow fuzzy matching. The set: prefix is optional but allowed for
+consistency. 
+<P>
+Note that in IPv6 only, vendorclasses are namespaced with an 
+IANA-allocated enterprise number. This is given with enterprise:
+keyword and specifies that only vendorclasses matching the specified
+number should be searched.
+<DT><B>-j, --dhcp-userclass=set:&lt;tag&gt;,&lt;user-class&gt;</B>
+
+<DD>
+Map from a user-class string to a tag (with substring
+matching, like vendor classes). Most DHCP clients provide a 
+&quot;user class&quot; which is configurable. This option
+maps user classes to tags, so that DHCP options may be selectively delivered
+to different classes of hosts. It is possible, for instance to use
+this to set a different printer server for hosts in the class
+&quot;accounts&quot; than for hosts in the class &quot;engineering&quot;.
+<DT><B>-4, --dhcp-mac=set:&lt;tag&gt;,&lt;MAC address&gt;</B>
+
+<DD>
+Map from a MAC address to a tag. The MAC address may include
+wildcards. For example
+<B>--dhcp-mac=set:3com,01:34:23:*:*:*</B>
+
+will set the tag &quot;3com&quot; for any host whose MAC address matches the pattern.
+<DT><B>--dhcp-circuitid=set:&lt;tag&gt;,&lt;circuit-id&gt;, --dhcp-remoteid=set:&lt;tag&gt;,&lt;remote-id&gt;</B>
+
+<DD>
+Map from RFC3046 relay agent options to tags. This data may
+be provided by DHCP relay agents. The circuit-id or remote-id is
+normally given as colon-separated hex, but is also allowed to be a
+simple string. If an exact match is achieved between the circuit or
+agent ID and one provided by a relay agent, the tag is set. 
+<P>
+<B>--dhcp-remoteid</B>
+
+(but not <B>--dhcp-circuitid</B>) is supported in IPv6.
+<DT><B>--dhcp-subscrid=set:&lt;tag&gt;,&lt;subscriber-id&gt;</B>
+
+<DD>
+(IPv4 and IPv6) Map from RFC3993 subscriber-id relay agent options to tags.
+<DT><B>--dhcp-proxy[=&lt;ip addr&gt;]......</B>
+
+<DD>
+(IPv4 only) A normal DHCP relay agent is only used to forward the initial parts of
+a DHCP interaction to the DHCP server. Once a client is configured, it
+communicates directly with the server. This is undesirable if the
+relay agent is adding extra information to the DHCP packets, such as
+that used by
+<B>--dhcp-circuitid</B>
+
+and
+<B>--dhcp-remoteid.</B>
+
+A full relay implementation can use the RFC 5107 serverid-override
+option to force the DHCP server to use the relay as a full proxy, with all
+packets passing through it. This flag provides an alternative method
+of doing the same thing, for relays which don't support RFC
+5107. Given alone, it manipulates the server-id for all interactions
+via relays. If a list of IP addresses is given, only interactions via
+relays at those addresses are affected.
+<DT><B>--dhcp-match=set:&lt;tag&gt;,&lt;option number&gt;|option:&lt;option name&gt;|vi-encap:&lt;enterprise&gt;[,&lt;value&gt;]</B>
+
+<DD>
+Without <B>&lt;value&gt;</B>, set <B>&lt;tag&gt;</B> if the client sends a DHCP
+<B>option</B> of the given number or name. With <B>&lt;value&gt;</B>, set <B>&lt;tag&gt;</B> only if
+the client sends the <B>option</B> matching or containing <B>&lt;value&gt;</B>. 
+<P>
+The value may be of the form
+&quot;01:ff:*:02&quot; in which case the value must match (apart from wildcards)
+but the option sent may have unmatched data past the end of the
+value. The value may also be of the same form as in 
+<B>--dhcp-option</B>
+
+in which case the option sent is treated as an array, and one element
+must match.
+<B>--dhcp-match=set:efi-ia32,option:client-arch,6</B>
+
+sets the tag <B>efi-ia32</B> if the number <B>6</B> appears in the list of
+architectures sent by the client in option 93. (See RFC 4578 for
+details.) If the value is a string, substring matching is used.
+<P>
+The special form with vi-encap:&lt;enterprise number&gt; matches against
+vendor-identifying vendor classes for the specified enterprise. Please
+see RFC 3925 for more details of these rare and interesting beasts.
+<DT><B>--dhcp-name-match=set:&lt;tag&gt;,&lt;name&gt;[*]</B>
+
+<DD>
+Set a <B>&lt;tag&gt;</B> if the given <B>&lt;name&gt;</B> is supplied by a DHCP client. There may be a single trailing wildcard *, with a glob meaning. Combined with <B>dhcp-ignore</B> or <B>dhcp-ignore-names</B> this gives the ability to ignore certain clients by name, or disallow certain hostnames from being claimed by a client.
+<DT><B>--tag-if=set:&lt;tag&gt;[,set:&lt;tag&gt;[,tag:&lt;tag&gt;[,tag:&lt;tag&gt;]]]</B>
+
+<DD>
+Perform boolean operations on tags. All <B>set:&lt;tag&gt;</B> tags are set if
+all <B>tag:&lt;tag&gt;</B> are already set, (or unset when <B>tag:!&lt;tag&gt;</B> is used).
+If no <B>tag:&lt;tag&gt;</B> appears, <B>set:&lt;tag&gt;</B> tags are set unconditionally.
+Any number of <B>set:</B> and <B>tag:</B> forms may appear, in any order. 
+<B>--tag-if</B> lines are executed in order, so if the tag in <B>tag:&lt;tag&gt;</B> is a
+tag set by another
+<B>--tag-if,</B>
+
+the line which sets the tag must precede the line which tests it.
+<P>
+As an extension, the <B>tag:&lt;tag&gt;</B> clauses support limited wildcard matching,
+similar to the matching in the <B>--interface</B> directive. This allows the
+example <B>--tag-if=set:ppp,tag:ppp*</B> to set the tag 'ppp' for all requests
+received on any matching interface (ppp0, ppp1, etc). This can be used in conjunction
+with the <B>tag:!&lt;tag&gt;</B> format meaning that no tag matching the wildcard may be set.
+<DT><B>-J, --dhcp-ignore=tag:&lt;tag&gt;[,tag:&lt;tag&gt;]</B>
+
+<DD>
+When all the given tags appear in the tag set, ignore the host and do
+not allocate it a DHCP lease.
+<DT><B>--dhcp-ignore-names[=tag:&lt;tag&gt;[,tag:&lt;tag&gt;]]</B>
+
+<DD>
+When all the given tags appear in the tag set, ignore any hostname
+provided by the host. Note that, unlike <B>--dhcp-ignore</B>, it is permissible
+to supply no tags, in which case DHCP-client supplied hostnames
+are always ignored, and DHCP hosts are added to the DNS using only
+<B>--dhcp-host</B> configuration in dnsmasq and the contents of /etc/hosts and
+/etc/ethers.
+<DT><B>--dhcp-generate-names=tag:&lt;tag&gt;[,tag:&lt;tag&gt;]</B>
+
+<DD>
+(IPv4 only) Generate a name for DHCP clients which do not otherwise have one,
+using the MAC address expressed in hex, separated by dashes. Note that
+if a host provides a name, it will be used by preference to this,
+unless 
+<B>--dhcp-ignore-names </B>
+
+is set.
+<DT><B>--dhcp-broadcast[=tag:&lt;tag&gt;[,tag:&lt;tag&gt;]]</B>
+
+<DD>
+(IPv4 only) When all the given tags appear in the tag set, always use broadcast to
+communicate with the host when it is unconfigured. It is permissible
+to supply no tags, in which case this is unconditional. Most DHCP clients which
+need broadcast replies set a flag in their requests so that this
+happens automatically, some old BOOTP clients do not.
+<DT><B>-M, --dhcp-boot=[tag:&lt;tag&gt;,]&lt;filename&gt;,[&lt;servername&gt;[,&lt;server address&gt;|&lt;tftp_servername&gt;]]</B>
+
+<DD>
+(IPv4 only) Set BOOTP options to be returned by the DHCP server. Server name and
+address are optional: if not provided, the name is left empty, and the
+address set to the address of the machine running dnsmasq. If dnsmasq
+is providing a TFTP service (see 
+<B>--enable-tftp</B>
+
+) then only the filename is required here to enable network booting.
+If the optional tag(s) are given,
+they must match for this configuration to be sent. 
+Instead of an IP address, the TFTP server address can be given as a domain
+name which is looked up in /etc/hosts. This name can be associated in
+/etc/hosts with multiple IP addresses, which are used round-robin.
+This facility can be used to load balance the tftp load among a set of servers.
+<DT><B>--dhcp-sequential-ip</B>
+
+<DD>
+Dnsmasq is designed to choose IP addresses for DHCP clients using a
+hash of the client's MAC address. This normally allows a client's
+address to remain stable long-term, even if the client  sometimes allows its DHCP
+lease to expire. In this default mode IP addresses are distributed
+pseudo-randomly over the entire available address range. There are
+sometimes circumstances (typically server deployment) where it is more
+convenient to have IP
+addresses allocated sequentially, starting from the lowest available
+address, and setting this flag enables this mode. Note that in the
+sequential mode, clients which allow a lease to expire are much more
+likely to move IP address; for this reason it should not be generally used.
+<DT><B>--dhcp-ignore-clid</B>
+
+<DD>
+Dnsmasq is reading 'client identifier' (RFC 2131) option sent by clients
+(if available) to identify clients. This allow one to serve same IP address
+for a host using several interfaces. Use this option to disable 'client identifier'
+reading, i.e. to always identify a host using the MAC address.
+<DT><B>--pxe-service=[tag:&lt;tag&gt;,]&lt;CSA&gt;,&lt;menu text&gt;[,&lt;basename&gt;|&lt;bootservicetype&gt;][,&lt;server address&gt;|&lt;server_name&gt;]</B>
+
+<DD>
+Most uses of PXE boot-ROMS simply allow the PXE
+system to obtain an IP address and then download the file specified by
+<B>--dhcp-boot</B>
+
+and execute it. However the PXE system is capable of more complex
+functions when supported by a suitable DHCP server.
+<P>
+This specifies a boot option which may appear in a PXE boot menu. &lt;CSA&gt; is
+client system type, only services of the correct type will appear in a
+menu. The known types are x86PC, PC98, IA64_EFI, Alpha, Arc_x86,
+Intel_Lean_Client, IA32_EFI,  x86-64_EFI, Xscale_EFI, BC_EFI, ARM32_EFI and ARM64_EFI; an
+integer may be used for other types. The
+parameter after the menu text may be a file name, in which case dnsmasq acts as a
+boot server and directs the PXE client to download the file by TFTP,
+either from itself (
+<B>--enable-tftp</B>
+
+must be set for this to work) or another TFTP server if the final server
+address/name is given.
+Note that the &quot;layer&quot;
+suffix (normally &quot;.0&quot;) is supplied by PXE, and need not be added to
+the basename. Alternatively, the basename may be a filename, complete with suffix, in which case
+no layer suffix is added. If an integer boot service type, rather than a basename
+is given, then the PXE client will search for a
+suitable boot service for that type on the network. This search may be done
+by broadcast, or direct to a server if its IP address/name is provided.  
+If no boot service type or filename is provided (or a boot service type of 0 is specified)
+then the menu entry will abort the net boot procedure and
+continue booting from local media. The server address can be given as a domain
+name which is looked up in /etc/hosts. This name can be associated in
+/etc/hosts with multiple IP addresses, which are used round-robin.
+<DT><B>--pxe-prompt=[tag:&lt;tag&gt;,]&lt;prompt&gt;[,&lt;timeout&gt;]</B>
+
+<DD>
+Setting this provides a prompt to be displayed after PXE boot. If the
+timeout is given then after the
+timeout has elapsed with no keyboard input, the first available menu
+option will be automatically executed. If the timeout is zero then the first available menu
+item will be executed immediately. If 
+<B>--pxe-prompt</B>
+
+is omitted the system will wait for user input if there are multiple
+items in the menu, but boot immediately if
+there is only one. See
+<B>--pxe-service</B>
+
+for details of menu items.
+<P>
+Dnsmasq supports PXE &quot;proxy-DHCP&quot;, in this case another DHCP server on
+the network is responsible for allocating IP addresses, and dnsmasq
+simply provides the information given in 
+<B>--pxe-prompt</B>
+
+and
+<B>--pxe-service</B>
+
+to allow netbooting. This mode is enabled using the
+<B>proxy</B>
+
+keyword in
+<B>--dhcp-range.</B>
+
+If the &quot;other&quot; DHCP server is on a remote network, it is
+possible, and useful, to configure dnsmasq as both a PXE proxy-DHCP server
+and a DHCP relay to the remote DHCP server. See
+<B>--dhcp-relay</B>
+
+for details. PXE is only supported over IPv4 at this time.
+<DT><B>--dhcp-pxe-vendor=&lt;vendor&gt;[,...]</B>
+
+<DD>
+According to UEFI and PXE specifications, DHCP packets between PXE clients and
+proxy PXE servers should have 
+<I>PXEClient </I>
+
+in their vendor-class field. However, the firmware of computers from a few
+vendors is customized to carry a different identifier in that field. This option
+is used to consider such identifiers valid for identifying PXE clients. For 
+instance
+<P>
+<B>--dhcp-pxe-vendor=PXEClient,HW-Client</B>
+
+<P>
+will enable dnsmasq to also provide proxy PXE service to those PXE clients with
+<I>HW-Client</I>
+
+in as their identifier.
+<DT><B>-X, --dhcp-lease-max=&lt;number&gt;</B>
+
+<DD>
+Limits dnsmasq to the specified maximum number of DHCP leases. The
+default is 1000. This limit is to prevent DoS attacks from hosts which
+create thousands of leases and use lots of memory in the dnsmasq
+process.
+<DT><B>-K, --dhcp-authoritative</B>
+
+<DD>
+Should be set when dnsmasq is definitely the only DHCP server on a network.
+For DHCPv4, it changes the behaviour from strict RFC compliance so that DHCP requests on
+unknown leases from unknown hosts are not ignored. This allows new hosts
+to get a lease without a tedious timeout under all circumstances. It also 
+allows dnsmasq to rebuild its lease database without each client needing to 
+reacquire a lease, if the database is lost. For DHCPv6 it controls the same
+behaviour as DHCPv4 with missing leases (except for the RFC uncompliance - the
+DHCPv6 RFCs allow this behaviour if configured). It also sets the
+priority in replies to 255 (the maximum) instead of 0 (the minimum).
+<DT><B>--dhcp-rapid-commit</B>
+
+<DD>
+Enable DHCPv4 Rapid Commit Option specified in RFC 4039. When enabled, dnsmasq
+will respond to a DHCPDISCOVER message including a Rapid Commit
+option with a DHCPACK including a Rapid Commit option and fully committed
+address and configuration information. Should only be enabled if either the
+server is  the only server for the subnet, or multiple servers are present and they each commit a binding for all clients.
+<DT><B>--dhcp-alternate-port[=&lt;server port&gt;[,&lt;client port&gt;]]</B>
+
+<DD>
+(IPv4 only) Change the ports used for DHCP from the default. If this option is
+given alone, without arguments, it changes the ports used for DHCP
+from 67 and 68 to 1067 and 1068. If a single argument is given, that
+port number is used for the server and the port number plus one used
+for the client. Finally, two port numbers allows arbitrary
+specification of both server and client ports for DHCP.
+<DT><B>-3, --bootp-dynamic[=&lt;network-id&gt;[,&lt;network-id&gt;]]</B>
+
+<DD>
+(IPv4 only) Enable dynamic allocation of IP addresses to BOOTP clients. Use this
+with care, since each address allocated to a BOOTP client is leased
+forever, and therefore becomes permanently unavailable for re-use by
+other hosts. if this is given without tags, then it unconditionally
+enables dynamic allocation. With tags, only when the tags are all
+set. It may be repeated with different tag sets. 
+<DT><B>-5, --no-ping</B>
+
+<DD>
+(IPv4 only) By default, the DHCP server will attempt to ensure that an address is
+not in use before allocating it to a host. It does this by sending an
+ICMP echo request (aka &quot;ping&quot;) to the address in question. If it gets
+a reply, then the address must already be in use, and another is
+tried. This flag disables this check. Use with caution.
+<DT><B>--log-dhcp</B>
+
+<DD>
+Extra logging for DHCP: log all the options sent to DHCP clients and
+the tags used to determine them.
+<DT><B>--quiet-dhcp, --quiet-dhcp6, --quiet-ra, --quiet-tftp</B>
+
+<DD>
+Suppress logging of the routine operation of these protocols. Errors and
+problems will still be logged. <B>--quiet-tftp</B> does not consider file not
+found to be an error. <B>--quiet-dhcp</B> and quiet-dhcp6 are over-ridden by
+<B>--log-dhcp</B>.
+<DT><B>-l, --dhcp-leasefile=&lt;path&gt;</B>
+
+<DD>
+Use the specified file to store DHCP lease information.
+<DT><B>--dhcp-duid=&lt;enterprise-id&gt;,&lt;uid&gt;</B>
+
+<DD>
+(IPv6 only) Specify the server persistent UID which the DHCPv6 server
+will use. This option is not normally required as dnsmasq creates a
+DUID automatically when it is first needed. When given, this option
+provides dnsmasq the data required to create a DUID-EN type DUID. Note
+that once set, the DUID is stored in the lease database, so to change between DUID-EN and
+automatically created DUIDs or vice-versa, the lease database must be
+re-initialised. The enterprise-id is assigned by IANA, and the uid is a
+string of hex octets unique to a particular device.
+<DT><B>-6 --dhcp-script=&lt;path&gt;</B>
+
+<DD>
+Whenever a new DHCP lease is created, or an old one destroyed, or a
+TFTP file transfer completes, the
+executable specified by this option is run.  &lt;path&gt;
+must be an absolute pathname, no PATH search occurs. 
+The arguments to the process
+are &quot;add&quot;, &quot;old&quot; or &quot;del&quot;, the MAC
+address of the host (or DUID for IPv6) , the IP address, and the hostname,
+if known. &quot;add&quot; means a lease has been created, &quot;del&quot; means it has
+been destroyed, &quot;old&quot; is a notification of an existing lease when
+dnsmasq starts or a change to MAC address or hostname of an existing
+lease (also, lease length or expiry and client-id, if <B>--leasefile-ro</B> is set
+and lease expiry if <B>--script-on-renewal</B> is set).
+If the MAC address is from a network type other than ethernet,
+it will have the network type prepended, eg &quot;06-01:23:45:67:89:ab&quot; for
+token ring. The process is run as root (assuming that dnsmasq was originally run as
+root) even if dnsmasq is configured to change UID to an unprivileged user.
+<P>
+The environment is inherited from the invoker of dnsmasq, with some or
+all of the following variables added
+<P>
+For both IPv4 and IPv6:
+<P>
+DNSMASQ_DOMAIN if the fully-qualified domain name of the host is
+known, this is set to the  domain part. (Note that the hostname passed
+to the script as an argument is never fully-qualified.)
+<P>
+If the client provides a hostname, DNSMASQ_SUPPLIED_HOSTNAME
+<P>
+If the client provides user-classes, DNSMASQ_USER_CLASS0..DNSMASQ_USER_CLASSn 
+<P>
+If dnsmasq was compiled with HAVE_BROKEN_RTC, then
+the length of the lease (in seconds) is stored in
+DNSMASQ_LEASE_LENGTH, otherwise the time of lease expiry is stored in
+DNSMASQ_LEASE_EXPIRES. The number of seconds until lease expiry is
+always stored in DNSMASQ_TIME_REMAINING.
+<P>
+DNSMASQ_DATA_MISSING is set to &quot;1&quot; during &quot;old&quot; events for existing
+leases generated at startup to indicate that data not stored in the
+persistent lease database will not be present. This comprises everything
+other than IP address, hostname, MAC address, DUID, IAID and lease length
+or expiry time.
+<P>
+If a lease used to have a hostname, which is
+removed, an &quot;old&quot; event is generated with the new state of the lease, 
+ie no name, and the former name is provided in the environment 
+variable DNSMASQ_OLD_HOSTNAME. 
+<P>
+DNSMASQ_INTERFACE stores the name of
+the interface on which the request arrived; this is not set for &quot;old&quot;
+actions when dnsmasq restarts. 
+<P>
+DNSMASQ_RELAY_ADDRESS is set if the client
+used a DHCP relay to contact dnsmasq and the IP address of the relay
+is known. 
+<P>
+DNSMASQ_TAGS contains all the tags set during the
+DHCP transaction, separated by spaces.
+<P>
+DNSMASQ_LOG_DHCP is set if
+<B>--log-dhcp</B>
+
+is in effect.
+<P>
+DNSMASQ_REQUESTED_OPTIONS a string containing the decimal values in the Parameter Request List option, comma separated, if the parameter request list option is provided by the client.
+<P>
+DNSMASQ_MUD_URL the Manufacturer Usage Description URL if provided by the client. (See RFC8520 for details.)
+<P>
+<P>
+For IPv4 only:
+<P>
+DNSMASQ_CLIENT_ID if the host provided a client-id.
+<P>
+DNSMASQ_CIRCUIT_ID, DNSMASQ_SUBSCRIBER_ID, DNSMASQ_REMOTE_ID if a
+DHCP relay-agent added any of these options.
+<BR>&nbsp;
+If the client provides vendor-class, DNSMASQ_VENDOR_CLASS.
+<P>
+For IPv6 only:
+<P>
+If the client provides vendor-class, DNSMASQ_VENDOR_CLASS_ID,
+containing the IANA enterprise id for the class, and
+DNSMASQ_VENDOR_CLASS0..DNSMASQ_VENDOR_CLASSn for the data.
+<P>
+DNSMASQ_SERVER_DUID containing the DUID of the server: this is the same for
+every call to the script.
+<P>
+DNSMASQ_IAID containing the IAID for the lease. If the lease is a
+temporary allocation, this is prefixed to 'T'.
+<P>
+DNSMASQ_MAC containing the MAC address of the client, if known.
+<P>
+Note that the supplied hostname, vendorclass and userclass data is
+only  supplied for
+&quot;add&quot; actions or &quot;old&quot; actions when a host resumes an existing lease,
+since these data are not held in dnsmasq's lease
+database.
+<P>
+<P>
+<P>
+All file descriptors are
+closed except stdin, which is open to /dev/null, and stdout and stderr which capture output for logging by dnsmasq. 
+(In debug mode, stdio, stdout and stderr file are left as those inherited from the invoker of dnsmasq).
+<P>
+The script is not invoked concurrently: at most one instance
+of the script is ever running (dnsmasq waits for an instance of script to exit
+before running the next). Changes to the lease database are which
+require the script to be invoked are queued awaiting exit of a running instance.
+If this queueing allows multiple state changes occur to a single
+lease before the script can be run then 
+earlier states are discarded and the current state of that lease is
+reflected when the script finally runs. 
+<P>
+At dnsmasq startup, the script will be invoked for
+all existing leases as they are read from the lease file. Expired
+leases will be called with &quot;del&quot; and others with &quot;old&quot;. When dnsmasq
+receives a HUP signal, the script will be invoked for existing leases
+with an &quot;old&quot; event.
+<P>
+<P>
+There are five further actions which may appear as the first argument
+to the script, &quot;init&quot;, &quot;arp-add&quot;, &quot;arp-del&quot;, &quot;relay-snoop&quot; and &quot;tftp&quot;.
+More may be added in the future, so
+scripts should be written to ignore unknown actions. &quot;init&quot; is
+described below in 
+<B>--leasefile-ro</B>
+
+<P>
+The &quot;tftp&quot; action is invoked when a TFTP file transfer completes: the
+arguments are the file size in bytes, the address to which the file
+was sent, and the complete pathname of the file.
+<P>
+The &quot;relay-snoop&quot; action is invoked when dnsmasq is configured as a DHCP
+relay for DHCPv6 and it relays a prefx delegation to a client. The arguments
+are the name of the interface where the client is connected, its (link-local)
+address on that interface and the delegated prefix. This information is
+sufficient to install routes to the delegated prefix of a router. See
+<B>--dhcp-relay</B>
+
+for more details on configuring DHCP relay.
+<P>
+The &quot;arp-add&quot; and &quot;arp-del&quot; actions are only called if enabled with
+<B>--script-arp</B>
+
+They are are supplied with a MAC address and IP address as arguments. &quot;arp-add&quot; indicates
+the arrival of a new entry in the ARP or neighbour table, and &quot;arp-del&quot; indicates the deletion of same.
+<P>
+<DT><B>--dhcp-luascript=&lt;path&gt;</B>
+
+<DD>
+Specify a script written in Lua, to be run when leases are created,
+destroyed or changed. To use this option, dnsmasq must be compiled
+with the correct support. The Lua interpreter is initialised once, when
+dnsmasq starts, so that global variables persist between lease
+events. The Lua code must define a
+<B>lease</B>
+
+function, and may provide
+<B>init</B>
+
+and
+<B>shutdown</B>
+
+functions, which are called, without arguments when dnsmasq starts up
+and terminates. It may also provide a 
+<B>tftp</B>
+
+function.
+<P>
+The 
+<B>lease</B>
+
+function receives the information detailed in 
+<B>--dhcp-script. </B>
+
+It gets two arguments, firstly the action, which is a string
+containing, &quot;add&quot;, &quot;old&quot; or &quot;del&quot;, and secondly a table of tag value
+pairs. The tags mostly correspond to the environment variables
+detailed above, for instance the tag &quot;domain&quot; holds the same data as
+the environment variable DNSMASQ_DOMAIN. There are a few extra tags
+which hold the data supplied as arguments to
+<B>--dhcp-script. </B>
+
+These are 
+<B>mac_address, ip_address</B>
+
+and 
+<B>hostname</B>
+
+for IPv4, and 
+<B>client_duid, ip_address</B>
+
+and 
+<B>hostname</B>
+
+for IPv6.
+<P>
+The  
+<B>tftp</B>
+
+function is called in the same way as the lease function, and the
+table holds the tags 
+<B>destination_address,</B>
+
+<B>file_name</B>
+
+and 
+<B>file_size.</B>
+
+<P>
+The 
+<B>arp</B>
+
+and
+<B>arp-old</B>
+
+functions are called only when enabled with
+<B>--script-arp</B>
+
+and have a table which holds the tags
+<B>mac_address</B>
+
+and
+<B>client_address.</B>
+
+<DT><B>--dhcp-scriptuser</B>
+
+<DD>
+Specify the user as which to run the lease-change script or Lua script. This defaults to root, but can be changed to another user using this flag. 
+<DT><B>--script-arp</B>
+
+<DD>
+Enable the &quot;arp&quot; and &quot;arp-old&quot; functions in the <B>--dhcp-script</B> and <B>--dhcp-luascript</B>.
+<DT><B>-9, --leasefile-ro</B>
+
+<DD>
+Completely suppress use of the lease database file. The file will not
+be created, read, or written. Change the way the lease-change
+script (if one is provided) is called, so that the lease database may
+be maintained in external storage by the script. In addition to the
+invocations  given in 
+<B>--dhcp-script</B>
+
+the lease-change script is called once, at dnsmasq startup, with the
+single argument &quot;init&quot;. When called like this the script should write
+the saved state of the lease database, in dnsmasq leasefile format, to
+stdout and exit with zero exit code. Setting this
+option also forces the leasechange script to be called on changes
+to the client-id and lease length and expiry time.
+<DT><B>--script-on-renewal</B>
+
+<DD>
+Call the DHCP script when the lease expiry time changes, for instance when the
+lease is renewed.
+<DT><B>--bridge-interface=&lt;interface&gt;,&lt;alias&gt;[,&lt;alias&gt;]</B>
+
+<DD>
+Treat DHCP (v4 and v6) requests and IPv6 Router Solicit packets
+arriving at any of the &lt;alias&gt; interfaces as if they had arrived at
+&lt;interface&gt;.  This option allows dnsmasq to provide DHCP and RA
+service over unaddressed and unbridged Ethernet interfaces, e.g. on an
+OpenStack compute host where each such interface is a TAP interface to
+a VM, or as in &quot;old style bridging&quot; on BSD platforms.  A trailing '*'
+wildcard can be used in each &lt;alias&gt;.
+<P>
+It is permissible to add more than one alias using more than one <B>--bridge-interface</B> option since
+<B>--bridge-interface=int1,alias1,alias2</B> is exactly equivalent to
+<B>--bridge-interface=int1,alias1 --bridge-interface=int1,alias2</B>
+<DT><B>--shared-network=&lt;interface&gt;,&lt;addr&gt;</B>
+
+<DD>
+
+<DT><B>--shared-network=&lt;addr&gt;,&lt;addr&gt;</B>
+
+<DD>
+
+The DHCP server determines which DHCP ranges are useable for allocating an
+address to a DHCP client based on the network from which the DHCP request arrives,
+and the IP configuration of the server's interface on that network. The shared-network
+option extends the available subnets (and therefore DHCP ranges) beyond the
+subnets configured on the arrival interface.
+<P>
+The first argument is either the
+name of an interface, or an address that is configured on a local interface, and the
+second argument is an address which defines another subnet on which addresses can be allocated.
+<P>
+To be useful, there must be a suitable dhcp-range which allows address allocation on this subnet
+and this dhcp-range MUST include the netmask.
+<P>
+Using shared-network also needs extra
+consideration of routing. Dnsmasq does not have the usual information that it uses to
+determine the default route, so the default route option (or other routing) MUST be
+configured manually. The client must have a route to the server: if the two-address form
+of shared-network is used, this needs to be to the first specified address. If the interface,address
+form is used, there must be a route to all of the addresses configured on the interface.
+<P>
+The two-address form of shared-network is also usable with a DHCP relay: the first address
+is the address of the relay and the second, as before, specifies an extra subnet which
+addresses may be allocated from.
+<P>
+<DT><B>-s, --domain=&lt;domain&gt;[[,&lt;address range&gt;[,local]]|&lt;interface&gt;]</B>
+
+<DD>
+Specifies DNS domains for the DHCP server. Domains may be be given 
+unconditionally (without the IP range) or for limited IP ranges. This has two effects;
+firstly it causes the DHCP server to return the domain to any hosts
+which request it, and secondly it sets the domain which it is legal
+for DHCP-configured hosts to claim. The intention is to constrain
+hostnames so that an untrusted host on the LAN cannot advertise 
+its name via DHCP as e.g. &quot;microsoft.com&quot; and capture traffic not 
+meant for it. If no domain suffix is specified, then any DHCP
+hostname with a domain part (ie with a period) will be disallowed 
+and logged. If suffix is specified, then hostnames with a domain 
+part are allowed, provided the domain part matches the suffix. In
+addition, when a suffix is set then hostnames without a domain
+part have the suffix added as an optional domain part. Eg on my network I can set 
+<B>--domain=thekelleys.org.uk</B>
+
+and have a machine whose DHCP hostname is &quot;laptop&quot;. The IP address for that machine is available from 
+<B>dnsmasq</B>
+
+both as &quot;laptop&quot; and &quot;laptop.thekelleys.org.uk&quot;. If the domain is
+given as &quot;#&quot; then the domain is read from the first &quot;search&quot; directive
+in /etc/resolv.conf (or equivalent).
+<P>
+The address range can be of the form
+&lt;ip address&gt;,&lt;ip address&gt; or &lt;ip address&gt;/&lt;netmask&gt; or just a single
+&lt;ip address&gt;. See 
+<B>--dhcp-fqdn</B>
+
+which can change the behaviour of dnsmasq with domains.
+<P>
+If the address range is given as ip-address/network-size, then a
+additional flag &quot;local&quot; may be supplied which has the effect of adding
+<B>--local</B> declarations for forward and reverse DNS queries. Eg.
+<B>--domain=thekelleys.org.uk,192.168.0.0/24,local</B>
+
+is identical to
+<B>--domain=thekelleys.org.uk,192.168.0.0/24</B>
+
+<B>--local=/thekelleys.org.uk/ --local=/0.168.192.in-addr.arpa/</B>
+
+<P>
+The address range can also be given as a network interface name, in which case
+all of the subnets currently assigned to the interface are used in matching the
+address. This allows hosts on different physical subnets to be given different
+domains in a way which updates automatically as the interface addresses change.
+<DT><B>--dhcp-fqdn</B>
+
+<DD>
+In the default mode, dnsmasq inserts the unqualified names of
+DHCP clients into the DNS. For this reason, the names must be unique,
+even if two clients which have the same name are in different
+domains. If a second DHCP client appears which has the same name as an
+existing client, the name is transferred to the new client. If 
+<B>--dhcp-fqdn</B>
+
+is set, this behaviour changes: the unqualified name is no longer
+put in the DNS, only the qualified name. Two DHCP clients with the
+same name may both keep the name, provided that the domain part is
+different (ie the fully qualified names differ.) To ensure that all
+names have a domain part, there must be at least 
+<B>--domain </B>
+
+without an address specified when 
+<B>--dhcp-fqdn </B>
+
+is set.
+<DT><B>--dhcp-client-update</B>
+
+<DD>
+Normally, when giving a DHCP lease, dnsmasq sets flags in the FQDN
+option to tell the client not to attempt a DDNS update with its name
+and IP address. This is because the name-IP pair is automatically
+added into dnsmasq's DNS view. This flag suppresses that behaviour,
+this is useful, for instance, to allow Windows clients to update
+Active Directory servers. See RFC 4702 for details. 
+<DT><B>--enable-ra</B>
+
+<DD>
+Enable dnsmasq's IPv6 Router Advertisement feature. DHCPv6 doesn't
+handle complete network configuration in the same way as DHCPv4. Router
+discovery and (possibly) prefix discovery for autonomous address
+creation are handled by a different protocol. When DHCP is in use,
+only a subset of this is needed, and dnsmasq can handle it, using
+existing DHCP configuration to provide most data. When RA is enabled,
+dnsmasq will advertise a prefix for each <B>--dhcp-range</B>, with default
+router  as the relevant link-local address on 
+the machine running dnsmasq. By default, the &quot;managed address&quot; bits are set, and
+the &quot;use SLAAC&quot; bit is reset. This can be changed for individual
+subnets with the mode keywords described in
+<B>--dhcp-range.</B>
+
+RFC6106 DNS parameters are included in the advertisements. By default,
+the relevant link-local address of the machine running dnsmasq is sent
+as recursive DNS server. If provided, the DHCPv6 options dns-server and
+domain-search are used for the DNS server (RDNSS) and the domain search list (DNSSL).
+<DT><B>--ra-param=&lt;interface&gt;,[mtu:&lt;integer&gt;|&lt;interface&gt;|off,][high,|low,]&lt;ra-interval&gt;[,&lt;router lifetime&gt;]</B>
+
+<DD>
+Set non-default values for router advertisements sent via an
+interface. The priority field for the router may be altered from the
+default of medium with eg
+<B>--ra-param=eth0,high.</B>
+
+The interval between router advertisements may be set (in seconds) with 
+<B>--ra-param=eth0,60.</B>
+
+The lifetime of the route may be changed or set to zero, which allows
+a router to advertise prefixes but not a route via itself. 
+<B>--ra-param=eth0,0,0</B>
+
+(A value of zero for the interval means the default value.) All four parameters may be set at once.
+<B>--ra-param=eth0,mtu:1280,low,60,1200</B>
+
+<P>
+The interface field may include a wildcard.
+<P>
+The mtu: parameter may be an arbitrary interface name, in which case the MTU value for that interface is used. This is useful
+for (eg) advertising the MTU of a WAN interface on the other interfaces of a router.
+<DT><B>--dhcp-reply-delay=[tag:&lt;tag&gt;,]&lt;integer&gt;</B>
+
+<DD>
+Delays sending DHCPOFFER and PROXYDHCP replies for at least the specified number of seconds.
+This can be used as workaround for bugs in PXE boot firmware that does not function properly when
+receiving an instant reply.
+This option takes into account the time already spent waiting (e.g. performing ping check) if any.
+<DT><B>--enable-tftp[=&lt;interface&gt;[,&lt;interface&gt;]]</B>
+
+<DD>
+Enable the TFTP server function. This is deliberately limited to that
+needed to net-boot a client. Only reading is allowed; the tsize and
+blksize extensions are supported (tsize is only supported in octet
+mode). Without an argument, the TFTP service is provided to the same set of interfaces as DHCP service. 
+If the list of interfaces is provided, that defines which interfaces receive TFTP service.
+<DT><B>--tftp-root=&lt;directory&gt;[,&lt;interface&gt;]</B>
+
+<DD>
+Look for files to transfer using TFTP relative to the given
+directory. When this is set, TFTP paths which include &quot;..&quot; are
+rejected, to stop clients getting outside the specified root.
+Absolute paths (starting with /) are allowed, but they must be within
+the tftp-root. If the optional interface argument is given, the
+directory is only used for TFTP requests via that interface.
+<DT><B>--tftp-no-fail</B>
+
+<DD>
+Do not abort startup if specified tftp root directories are inaccessible.
+<DT><B>--tftp-unique-root[=ip|mac]</B>
+
+<DD>
+Add the IP or hardware address of the TFTP client as a path component on the end
+of the TFTP-root. Only valid if a <B>--tftp-root</B> is set and the directory exists.
+Defaults to adding IP address (in standard dotted-quad format).
+For instance, if <B>--tftp-root</B> is &quot;/tftp&quot; and client 1.2.3.4 requests file &quot;myfile&quot;
+then the effective path will be &quot;/tftp/1.2.3.4/myfile&quot; if /tftp/1.2.3.4 exists or /tftp/myfile otherwise.
+When &quot;=mac&quot; is specified it will append the MAC address instead, using lowercase zero padded digits
+separated by dashes, e.g.: 01-02-03-04-aa-bb
+Note that resolving MAC addresses is only possible if the client is in the local network or obtained
+a DHCP lease from us.
+<DT><B>--tftp-secure</B>
+
+<DD>
+Enable TFTP secure mode: without this, any file which is readable by
+the dnsmasq process under normal unix access-control rules is
+available via TFTP. When the <B>--tftp-secure</B> flag is given, only files
+owned by the user running the dnsmasq process are accessible. If
+dnsmasq is being run as root, different rules apply: <B>--tftp-secure</B>
+has no effect, but only files which have the world-readable bit set
+are accessible. It is not recommended to run dnsmasq as root with TFTP
+enabled, and certainly not without specifying <B>--tftp-root</B>. Doing so
+can expose any world-readable file on the server to any host on the net. 
+<DT><B>--tftp-lowercase</B>
+
+<DD>
+Convert filenames in TFTP requests to all lowercase. This is useful
+for requests from Windows machines, which have case-insensitive
+filesystems and tend to play fast-and-loose with case in filenames.
+Note that dnsmasq's tftp server always converts &quot;\&quot; to &quot;/&quot; in filenames.
+<DT><B>--tftp-max=&lt;connections&gt;</B>
+
+<DD>
+Set the maximum number of concurrent TFTP connections allowed. This
+defaults to 50. When serving a large number of TFTP connections,
+per-process file descriptor limits may be encountered. Dnsmasq needs
+one file descriptor for each concurrent TFTP connection and one
+file descriptor per unique file (plus a few others). So serving the
+same file simultaneously to n clients will use require about n + 10 file
+descriptors, serving different files simultaneously to n clients will
+require about (2*n) + 10 descriptors. If 
+<B>--tftp-port-range</B>
+
+is given, that can affect the number of concurrent connections.
+<DT><B>--tftp-mtu=&lt;mtu size&gt;</B>
+
+<DD>
+Use size as the ceiling of the MTU supported by the intervening network when 
+negotiating TFTP blocksize, overriding the MTU setting of the local interface  if it is larger.
+<DT><B>--tftp-no-blocksize</B>
+
+<DD>
+Stop the TFTP server from negotiating the &quot;blocksize&quot; option with a
+client. Some buggy clients request this option but then behave badly
+when it is granted.
+<DT><B>--tftp-port-range=&lt;start&gt;,&lt;end&gt;</B>
+
+<DD>
+A TFTP server listens on a well-known port (69) for connection initiation,
+but it also uses a dynamically-allocated port for each
+connection. Normally these are allocated by the OS, but this option
+specifies a range of ports for use by TFTP transfers. This can be
+useful when TFTP has to traverse a firewall. The start of the range
+cannot be lower than 1025 unless dnsmasq is running as root. The number
+of concurrent TFTP connections is limited by the size of the port range. 
+<DT><B>--tftp-single-port</B>
+
+<DD>
+Run in a mode where the TFTP server uses ONLY the well-known port (69) for its end
+of the TFTP transfer. This allows TFTP to work when there in NAT is the path between client and server. Note that
+this is not strictly compliant with the RFCs specifying the TFTP protocol: use at your own risk.
+<DT><B>-C, --conf-file=&lt;file&gt;</B>
+
+<DD>
+Specify a configuration file. The presence of this option stops dnsmasq from reading the default configuration
+file (normally /etc/dnsmasq.conf). Multiple files may be specified by repeating the option
+either on the command line or in configuration files. A
+filename of &quot;-&quot; causes dnsmasq to read configuration from stdin.
+<DT><B>-7, --conf-dir=&lt;directory&gt;[,&lt;file-extension&gt;......],</B>
+
+<DD>
+Read all the files in the given directory as configuration
+files. If extension(s) are given, any files which end in those
+extensions are skipped. Any files whose names end in ~ or start with . or start and end
+with # are always skipped. If the extension starts with * then only files 
+which have that extension are loaded. So
+<B>--conf-dir=/path/to/dir,*.conf</B>
+
+loads all files with the suffix .conf in /path/to/dir. This flag may be given on the command
+line or in a configuration file. If giving it on the command line, be sure to
+escape * characters. Files are loaded in alphabetical order of filename.
+<DT><B>--servers-file=&lt;file&gt;</B>
+
+<DD>
+A special case of 
+<B>--conf-file</B>
+
+which differs in two respects. Firstly, only <B>--server</B> and <B>--rev-server</B> are allowed
+in the configuration file included. Secondly, the file is re-read and the configuration
+therein is updated when dnsmasq receives SIGHUP.
+<DT><B>--conf-script=&lt;file&gt;[ &lt;arg]</B>
+
+<DD>
+Execute &lt;file&gt;, and treat what it emits to stdout as the contents of a configuration file.
+If the script exits with a non-zero exit code, dnsmasq treats this as a fatal error.
+The script can be passed arguments, space separated from the filename and each other so, for instance
+<B>--conf-dir=/etc/dnsmasq-uncompress-ads /share/ads-domains.gz</B>
+
+<P>
+with /etc/dnsmasq-uncompress-ads containing 
+<P>
+set -e
+<P>
+zcat ${1} | sed -e &quot;s:^:address=/:&quot; -e &quot;s:$:/:&quot; 
+<P>
+exit 0
+<P>
+and /share/ads-domains.gz containing a compressed
+list of ad server domains will save disk space with large ad-server blocklists.
+<DT><B>--no-ident</B>
+
+<DD>
+Do not respond to class CHAOS and type TXT in domain bind queries.
+<P>
+Without this option being set, the cache statistics are also available in the
+DNS as answers to queries of class CHAOS and type TXT in domain bind. The domain
+names are cachesize.bind, insertions.bind, evictions.bind, misses.bind,
+hits.bind, auth.bind and servers.bind unless disabled at compile-time. An
+example command to query this, using the
+<B>dig</B>
+
+utility would be
+<P>
+dig +short chaos txt cachesize.bind
+<DT><B>--max-tcp-connections=&lt;number&gt;</B>
+
+<DD>
+The maximum number of concurrent TCP connections. The application forks to
+handle each TCP request. The default maximum is 20.
+<P>
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>CONFIG FILE</H2>
+
+At startup, dnsmasq reads
+<I>/etc/dnsmasq.conf,</I>
+
+if it exists. (On
+FreeBSD, the file is 
+<I>/usr/local/etc/dnsmasq.conf</I>
+
+) (but see the 
+<B>--conf-file</B>
+
+and
+<B>--conf-dir</B>
+
+options.) The format of this
+file consists of one option per line, exactly as the long options detailed 
+in the OPTIONS section but without the leading &quot;--&quot;. Lines starting with # are comments and ignored. For
+options which may only be specified once, the configuration file overrides 
+the command line.  Quoting is allowed in a config file:
+between &quot; quotes the special meanings of ,:. and # are removed and the
+following escapes are allowed: \\ \&quot; \t \e \b \r and \n. The later 
+corresponding to tab, escape, backspace, return and newline.
+<A NAME="lbAG">&nbsp;</A>
+<H2>NOTES</H2>
+
+When it receives a SIGHUP, 
+<B>dnsmasq </B>
+
+clears its cache and then re-loads 
+<I>/etc/hosts</I>
+
+and 
+<I>/etc/ethers </I>
+
+and any file given by <B>--dhcp-hostsfile</B>, <B>--dhcp-hostsdir</B>, <B>--dhcp-optsfile</B>,
+<B>--dhcp-optsdir</B>, <B>--addn-hosts</B> or <B>--hostsdir</B>.
+The DHCP lease change script is called for all
+existing DHCP leases. If 
+<B>--no-poll</B>
+
+is set SIGHUP also re-reads
+<I>/etc/resolv.conf.</I>
+
+SIGHUP
+does NOT re-read the configuration file.
+<P>
+
+When it receives a SIGUSR1,
+<B>dnsmasq </B>
+
+writes statistics to the system log. It writes the cache size,
+the number of names which have had to removed from the cache before
+they expired in order to make room for new names and the total number
+of names that have been inserted into the cache. The number of cache hits and 
+misses and the number of authoritative queries answered are also given. For each upstream
+server it gives the number of queries sent, and the number which
+resulted in an error. It also gives information on the number of forks for TCP connections. In
+<B>--no-daemon</B>
+
+mode or when full logging is enabled (<B>--log-queries</B>), a complete dump of the
+contents of the cache is made. 
+<P>
+When it receives SIGUSR2 and it is logging direct to a file (see
+<B>--log-facility</B>
+
+) 
+<B>dnsmasq</B>
+
+will close and reopen the log file. Note that during this operation,
+dnsmasq will not be running as root. When it first creates the logfile
+dnsmasq changes the ownership of the file to the non-root user it will run
+as. Logrotate should be configured to create a new log file with
+the ownership which matches the existing one before sending SIGUSR2.
+If TCP DNS queries are in progress, the old logfile will remain open in
+child processes which are handling TCP queries and may continue to be
+written. There is a limit of 150 seconds, after which all existing TCP
+processes will have expired: for this reason, it is not wise to
+configure logfile compression for logfiles which have just been
+rotated. Using logrotate, the required options are 
+<B>create </B>
+
+and
+<B>delaycompress.</B>
+
+<P>
+<BR>&nbsp;
+<P>
+
+Dnsmasq is a DNS query forwarder: it is not capable of recursively
+answering arbitrary queries starting from the root servers but
+forwards such queries to a fully recursive upstream DNS server which is
+typically provided by an ISP. By default, dnsmasq reads
+<I>/etc/resolv.conf</I>
+
+to discover the IP
+addresses of the upstream nameservers it should use, since the
+information is typically stored there. Unless
+<B>--no-poll</B>
+
+is used,
+<B>dnsmasq</B>
+
+checks the modification time of
+<I>/etc/resolv.conf</I>
+
+(or equivalent if 
+<B>--resolv-file </B>
+
+is used) and re-reads it if it changes. This allows the DNS servers to
+be set dynamically by PPP or DHCP since both protocols provide the
+information.
+Absence of
+<I>/etc/resolv.conf</I>
+
+is not an error
+since it may not have been created before a PPP connection exists. Dnsmasq 
+simply keeps checking in case
+<I>/etc/resolv.conf </I>
+
+is created at any
+time. Dnsmasq can be told to parse more than one resolv.conf
+file. This is useful on a laptop, where both PPP and DHCP may be used:
+dnsmasq can be set to poll both 
+<I>/etc/ppp/resolv.conf </I>
+
+and
+<I>/etc/dhcpc/resolv.conf </I>
+
+and will use the contents of whichever changed
+last, giving automatic switching between DNS servers.
+<P>
+
+Upstream servers may also be specified on the command line or in
+the configuration file. These server specifications optionally take a
+domain name which tells dnsmasq to use that server only to find names
+in that particular domain.
+<P>
+
+In order to configure dnsmasq to act as cache for the host on which it is running, put &quot;nameserver 127.0.0.1&quot; in
+<I>/etc/resolv.conf</I>
+
+to force local processes to send queries to
+dnsmasq. Then either specify the upstream servers directly to dnsmasq
+using 
+<B>--server</B>
+
+options or put their addresses real in another file, say
+<I>/etc/resolv.dnsmasq</I>
+
+and run dnsmasq with the 
+<B>--resolv-file /etc/resolv.dnsmasq</B>
+
+option. This second technique allows for dynamic update of the server
+addresses by PPP or DHCP.
+<P>
+
+Addresses in /etc/hosts will &quot;shadow&quot; different addresses for the same
+names in the upstream DNS, so &quot;mycompany.com 1.2.3.4&quot; in /etc/hosts will ensure that
+queries for &quot;mycompany.com&quot; always return 1.2.3.4 even if queries in
+the upstream DNS would otherwise return a different address. There is
+one exception to this: if the upstream DNS contains a CNAME which
+points to a shadowed name, then looking up the CNAME through dnsmasq
+will result in the unshadowed address associated with the target of
+the CNAME. To work around this, add the CNAME to /etc/hosts so that
+the CNAME is shadowed too.
+<P>
+<P>
+
+The tag system works as follows: dnsmasq tags each DHCP request
+with tags from applicable configuration lines containing <B>set:&lt;tag&gt;</B> i.e. 
+<P>
+<B>set:&lt;tag&gt;</B> from the <B>--dhcp-range</B> used to allocate the address;
+<P>
+<B>set:&lt;tag&gt;</B> from any matching <B>--dhcp-host</B> (plus the tag <B>known</B> or 
+<B>known-othernet</B>).
+<P>
+BOOTP requests are tagged <B>bootp</B>. Each request is also tagged with the name of  
+the interface on which the request arrived.
+<P>
+Each configuration line containing one or more <B>tag:&lt;tag&gt;</B> constructs
+applies when all its tags exist on the request. That is:
+<P>
+Configuration tag:A applies to a request set:tagged A.
+<P>
+Configuration tag:B applies to a request set:tagged B.
+<P>
+Configuration tag:A+B doesn't apply to a request set:tagged A.
+<P>
+Configuration tag:A+B doesn't apply to a request set:tagged B.
+<P>
+Configurations tag:A+B, tag:A, tag:B apply to a request set:tagged A+B.
+<P>
+<B>set:&lt;tag&gt;</B> constructs in <B>--dhcp-range</B> and <B>--dhcp-host</B> tag requests.
+<P>
+Use <B>tag:&lt;tag&gt;</B>s in <B>--dhcp-option</B>s to match <B>set:&lt;tag&gt;</B> and apply configurations.
+<P>
+A <B>--dhcp-option</B> with <B>tag:&lt;tag&gt;</B> is preferred over an untagged 
+<B>--dhcp-option</B>, provided that <B>all</B> its tags match somewhere in the
+set gathered above. 
+<P>
+The tag prefix '!' means 'not'.
+<B>--dhcp-option=tag:!purple,3,1.2.3.4</B> sends the option when the request 
+is not tagged with purple. (The shell metacharacter '!' must be escaped on the
+command line but not in a configuration file).
+<P>
+When selecting <B>--dhcp-option</B>s, a <B>--dhcp-range</B> tag is second class 
+to other tags, to make it easy to override options for
+individual hosts, so:
+<P>
+<B>--dhcp-range=set:interface1,......</B>
+
+<P>
+<B>--dhcp-host=set:myhost,.....</B>
+
+<P>
+<B>--dhcp-option=tag:interface1,option:nis-domain,domain1</B>
+
+<P>
+<B>--dhcp-option=tag:myhost,option:nis-domain,domain2</B>
+
+<P>
+sets the NIS-domain to domain1 for hosts in the range, but
+to domain2 for a particular host that may or may not fall in the range.
+<P>
+<P>
+
+Note that for <B>--dhcp-range</B> both 
+<B>tag:&lt;tag&gt;</B> and 
+<B>set:&lt;tag&gt;</B> are possible, in order to both select the range in
+use based on (eg) <B>--dhcp-host</B>, and to affect the options sent, based on
+the range selected.
+<P>
+The tag system evolved from an earlier, more limited system. For backward
+compatibility, &quot;net:&quot; may be used instead of &quot;tag:&quot; and &quot;set:&quot; may be
+omitted. (Except in 
+<B>--dhcp-host,</B>
+
+where &quot;net:&quot; may be used instead of &quot;set:&quot;.) For the same reason, '#'
+may be used instead of '!' to indicate NOT.
+<P>
+
+The DHCP server in dnsmasq will function as a BOOTP server also,
+provided that the MAC address and IP address for clients are given,
+either using 
+<B>--dhcp-host</B>
+
+configurations or in
+<I>/etc/ethers</I>
+
+, and a
+<B>--dhcp-range</B>
+
+configuration option is present to activate the DHCP server
+on a particular network. (Setting <B>--bootp-dynamic</B> removes the need for
+static address mappings.) The filename
+parameter in a BOOTP request is used as a tag,
+as is the tag <B>bootp</B>, allowing some control over the options returned to
+different classes of hosts.
+<P>
+<A NAME="lbAH">&nbsp;</A>
+<H2>AUTHORITATIVE CONFIGURATION</H2>
+
+Configuring dnsmasq to act as an authoritative DNS server is
+complicated by the fact that it involves configuration of external DNS
+servers to provide delegation. We will walk through three scenarios of
+increasing complexity. Prerequisites for all of these scenarios
+are a globally accessible IP address, an A or AAAA record pointing to that address,
+and an external DNS server capable of doing delegation of the zone in
+question. For the first part of this explanation, we will call the A (or AAAA) record
+for the globally accessible address server.example.com, and the zone
+for which dnsmasq is authoritative our.zone.com.
+<P>
+The simplest configuration consists of two lines of dnsmasq configuration; something like
+<P>
+<PRE>
+<B>--auth-server=server.example.com,eth0</B>
+<B>--auth-zone=our.zone.com,1.2.3.0/24</B>
+</PRE>
+
+<P>
+and two records in the external DNS
+<P>
+<PRE>
+server.example.com       A    192.0.43.10
+our.zone.com            NS    server.example.com
+</PRE>
+
+<P>
+eth0 is the external network interface on which dnsmasq is listening,
+and has (globally accessible) address 192.0.43.10. 
+<P>
+Note that the external IP address may well be dynamic (ie assigned
+from an ISP by DHCP or PPP) If so, the A record must be linked to this
+dynamic assignment by one of the usual dynamic-DNS systems.
+<P>
+A more complex, but practically useful configuration has the address
+record for the globally accessible IP address residing in the
+authoritative zone which dnsmasq is serving, typically at the root. Now
+we have
+<P>
+<PRE>
+<B>--auth-server=our.zone.com,eth0</B>
+<B>--auth-zone=our.zone.com,1.2.3.0/24</B>
+</PRE>
+
+<P>
+<PRE>
+our.zone.com             A    1.2.3.4
+our.zone.com            NS    our.zone.com
+</PRE>
+
+<P>
+The A record for our.zone.com has now become a glue record, it solves
+the chicken-and-egg problem of finding the IP address of the
+nameserver for our.zone.com when the A record is within that
+zone. Note that this is the only role of this record: as dnsmasq is
+now authoritative from our.zone.com it too must provide this
+record. If the external address is static, this can be done with an
+<B>/etc/hosts </B>
+
+entry or 
+<B>--host-record.</B>
+
+<P>
+<PRE>
+<B>--auth-server=our.zone.com,eth0</B>
+<B>--host-record=our.zone.com,1.2.3.4</B>
+<B>--auth-zone=our.zone.com,1.2.3.0/24</B>
+</PRE>
+
+<P>
+If the external address is dynamic, the address
+associated with our.zone.com must be derived from the address of the
+relevant interface. This is done using 
+<B>--interface-name</B>
+
+Something like:
+<P>
+<PRE>
+<B>--auth-server=our.zone.com,eth0</B>
+<B>--interface-name=our.zone.com,eth0</B>
+<B>--auth-zone=our.zone.com,1.2.3.0/24,eth0</B>
+</PRE>
+
+<P>
+(The &quot;eth0&quot; argument in <B>--auth-zone</B> adds the subnet containing eth0's
+dynamic address to the zone, so that the <B>--interface-name</B> returns the
+address in outside queries.)
+<P>
+Our final configuration builds on that above, but also adds a
+secondary DNS server. This is another DNS server which learns the DNS data
+for the zone by doing zones transfer, and acts as a backup should
+the primary server become inaccessible. The configuration of the
+secondary is beyond the scope of this man-page, but the extra
+configuration of dnsmasq is simple:
+<P>
+<PRE>
+<B>--auth-sec-servers=secondary.myisp.com</B>
+</PRE>
+
+<P>
+and
+<P>
+<PRE>
+our.zone.com           NS    secondary.myisp.com
+</PRE>
+
+<P>
+Adding auth-sec-servers enables zone transfer in dnsmasq, to allow the
+secondary to collect the DNS data. If you wish to restrict this data
+to particular hosts then
+<P>
+<PRE>
+<B>--auth-peer=&lt;IP address of secondary&gt;</B>
+</PRE>
+
+<P>
+will do so.
+<P>
+Dnsmasq acts as an authoritative server for  in-addr.arpa and
+ip6.arpa domains associated with the subnets given in <B>--auth-zone</B>
+declarations, so reverse (address to name) lookups can be simply
+configured with a suitable NS record, for instance in this example,
+where we allow 1.2.3.0/24 addresses.
+<P>
+<PRE>
+ 3.2.1.in-addr.arpa  NS    our.zone.com
+</PRE>
+
+<P>
+Note that at present, reverse (in-addr.arpa and ip6.arpa) zones are
+not available in zone transfers, so there is no point arranging
+secondary servers for reverse lookups.
+<P>
+<P>
+
+When dnsmasq is configured to act as an authoritative server, the
+following data is used to populate the authoritative zone.
+<P>
+
+<B>--mx-host, --srv-host, --dns-rr, --txt-record, --naptr-record, --caa-record,</B>
+
+as long as the record names are in the authoritative domain.
+<P>
+
+<B>--synth-domain</B>
+
+as long as the domain is in the authoritative zone and, for
+reverse (PTR) queries, the address is in the relevant subnet.
+<P>
+
+<B>--cname</B>
+
+as long as the record name is in  the authoritative domain. If the
+target of the CNAME is unqualified, then it  is qualified with the
+authoritative zone name. CNAME used in this way (only) may be wildcards, as in
+<P>
+<PRE>
+<B>--cname=*.example.com,default.example.com</B>
+</PRE>
+
+<P>
+<P>
+
+IPv4 and IPv6 addresses from /etc/hosts (and 
+<B>--addn-hosts</B>
+
+) and
+<B>--host-record</B>
+
+and 
+<B>--interface-name</B>
+
+and
+<B>---dynamic-host</B>
+
+provided the address falls into one of the subnets specified in the
+<B>--auth-zone.</B>
+
+<P>
+
+Addresses of DHCP leases, provided the address falls into one of the subnets specified in the
+<B>--auth-zone.</B>
+
+(If constructed DHCP ranges are is use, which depend on the address dynamically 
+assigned to an interface, then the form of
+<B>--auth-zone</B>
+
+which defines subnets by the dynamic address of an interface should
+be used to ensure this condition is met.)
+<P>
+
+In the default mode, where a DHCP lease
+has an unqualified name, and possibly a qualified name constructed
+using 
+<B>--domain</B>
+
+then the name in the authoritative zone is constructed from the
+unqualified name and the zone's domain. This may or may not equal
+that specified by 
+<B>--domain.</B>
+
+If 
+<B>--dhcp-fqdn</B>
+
+is set, then the fully qualified names associated with DHCP leases are
+used, and must match the zone's domain.
+<BR>&nbsp;
+<P>
+<P>
+<A NAME="lbAI">&nbsp;</A>
+<H2>EXIT CODES</H2>
+
+0 - Dnsmasq successfully forked into the background, or terminated
+normally if backgrounding is not enabled.
+<P>
+
+1 - A problem with configuration was detected.
+<P>
+
+2 - A problem with network access occurred (address in use, attempt
+to use privileged ports without permission).
+<P>
+
+3 - A problem occurred with a filesystem operation (missing
+file/directory, permissions).
+<P>
+
+4 - Memory allocation failure.
+<P>
+
+5 - Other miscellaneous problem.
+<P>
+
+11 or greater - a non zero return code was received from the
+lease-script process &quot;init&quot; call or a
+<B>--conf-script</B>
+
+file. The exit code from dnsmasq is the
+script's exit code with 10 added. 
+<P>
+<A NAME="lbAJ">&nbsp;</A>
+<H2>LIMITS</H2>
+
+The default values for resource limits in dnsmasq are generally
+conservative, and appropriate for embedded router type devices with
+slow processors and limited memory. On more capable hardware, it is
+possible to increase the limits, and handle many more clients. The
+following applies to dnsmasq-2.37: earlier versions did not scale as well.
+<BR>&nbsp;
+<P>
+
+Dnsmasq is capable of handling DNS and DHCP for at least a thousand
+clients. The DHCP lease times should not be very short (less than one hour). The
+value of 
+<B>--dns-forward-max </B>
+
+can be increased: start with it equal to
+the number of clients and increase if DNS seems slow. Note that DNS
+performance depends too on the performance of the upstream
+nameservers. The size of the DNS cache may be increased: the hard
+limit is 10000 names and the default (150) is very low. Sending
+SIGUSR1 to dnsmasq makes it log information which is useful for tuning
+the cache size. See the 
+<B>NOTES</B>
+
+section for details.
+<P>
+<P>
+
+The built-in TFTP server is capable of many simultaneous file
+transfers: the absolute limit is related to the number of file-handles
+allowed to a process and the ability of the select() system call to
+cope with large numbers of file handles. If the limit is set too high
+using 
+<B>--tftp-max</B>
+
+it will be scaled down and the actual limit logged at
+start-up. Note that more transfers are possible when the same file is
+being sent than when each transfer sends a different file.
+<P>
+<P>
+
+It is possible to use dnsmasq to block Web advertising by using a list
+of known banner-ad servers, all resolving to 127.0.0.1 or 0.0.0.0, in
+<B>/etc/hosts </B>
+
+or an additional hosts file. The list can be very long, 
+dnsmasq has been tested successfully with one million names. That size
+file needs a 1GHz processor and about 60Mb of RAM.
+<P>
+<A NAME="lbAK">&nbsp;</A>
+<H2>INTERNATIONALISATION</H2>
+
+Dnsmasq can be compiled to support internationalisation. To do this,
+the make targets &quot;all-i18n&quot; and &quot;install-i18n&quot; should be used instead of
+the standard targets &quot;all&quot; and &quot;install&quot;. When internationalisation
+is compiled in, dnsmasq will produce log messages in the local
+language and support internationalised domain names (IDN). Domain
+names in /etc/hosts, /etc/ethers and /etc/dnsmasq.conf which contain
+non-ASCII characters will be translated to the DNS-internal punycode
+representation. Note that
+dnsmasq determines both the language for messages and the assumed
+charset for configuration
+files from the LANG environment variable. This should be set to the system
+default value by the script which is responsible for starting
+dnsmasq. When editing the configuration files, be careful to do so
+using only the system-default locale and not user-specific one, since
+dnsmasq has no direct way of determining the charset in use, and must
+assume that it is the system default. 
+<BR>&nbsp;
+<A NAME="lbAL">&nbsp;</A>
+<H2>FILES</H2>
+
+<I>/etc/dnsmasq.conf</I>
+
+<P>
+<I>/usr/local/etc/dnsmasq.conf</I>
+
+<P>
+<I>/etc/resolv.conf</I>
+
+<I>/var/run/dnsmasq/resolv.conf</I>
+
+<I>/etc/ppp/resolv.conf</I>
+
+<I>/etc/dhcpc/resolv.conf</I>
+
+<P>
+<I>/etc/hosts</I>
+
+<P>
+<I>/etc/ethers</I>
+
+<P>
+<I>/var/lib/misc/dnsmasq.leases</I>
+
+<P>
+<I>/var/db/dnsmasq.leases</I>
+
+<P>
+<I>/var/run/dnsmasq.pid</I>
+
+<A NAME="lbAM">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B>hosts</B>(5),
+
+<B>resolver</B>(5)
+
+<A NAME="lbAN">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+This manual page was written by Simon Kelley &lt;<A HREF="mailto:simon@thekelleys.org.uk">simon@thekelleys.org.uk</A>&gt;.
+<P>
+<P>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">OPTIONS</A><DD>
+<DT><A HREF="#lbAF">CONFIG FILE</A><DD>
+<DT><A HREF="#lbAG">NOTES</A><DD>
+<DT><A HREF="#lbAH">AUTHORITATIVE CONFIGURATION</A><DD>
+<DT><A HREF="#lbAI">EXIT CODES</A><DD>
+<DT><A HREF="#lbAJ">LIMITS</A><DD>
+<DT><A HREF="#lbAK">INTERNATIONALISATION</A><DD>
+<DT><A HREF="#lbAL">FILES</A><DD>
+<DT><A HREF="#lbAM">SEE ALSO</A><DD>
+<DT><A HREF="#lbAN">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+man2html,
+using the manual pages.<BR>
+Time: 15:40:39 GMT, January 11, 2026
+</BODY>
+</HTML>

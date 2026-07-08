@@ -1,0 +1,48 @@
+{{define "content"}}
+<div class="page-hdr">
+  <div class="page-hdr-text">
+    <h1>Config File</h1>
+    <p class="mono-path">{{.ConfPath}}</p>
+  </div>
+  <div class="page-hdr-actions">
+    <button class="btn btn-outline" id="btn-validate">Validate</button>
+    <button class="btn btn-primary" id="btn-save-raw" disabled>Save</button>
+  </div>
+</div>
+
+<div class="tabs" id="tabs">
+  <button class="tab active" data-tab="editor">Editor</button>
+  <button class="tab" data-tab="explorer">Line explorer</button>
+</div>
+
+<div class="tab-pane active" data-pane="editor">
+  <div class="card">
+    <div class="card-body p0">
+      <div class="editor-wrap">
+        <textarea id="raw-editor" class="raw-editor" spellcheck="false" autocomplete="off"
+          placeholder="# dnsmasq configuration"></textarea>
+      </div>
+    </div>
+    <div class="card-footer">
+      <span id="editor-meta" class="card-hint"></span>
+      <span id="validate-result" class="card-hint"></span>
+    </div>
+  </div>
+</div>
+
+<div class="tab-pane" data-pane="explorer">
+  <div class="toolbar">
+    <div class="search-bar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+      </svg>
+      <input type="text" id="line-filter" placeholder="Filter directives…" autocomplete="off">
+    </div>
+    <label class="check-inline"><input type="checkbox" id="hide-comments" checked> hide comments &amp; blanks</label>
+    <button class="btn btn-secondary btn-sm" id="btn-add-directive" style="margin-left:auto">+ Add directive</button>
+  </div>
+  <div class="card">
+    <div class="card-body p0" id="line-explorer"></div>
+  </div>
+</div>
+{{end}}

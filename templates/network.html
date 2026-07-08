@@ -1,0 +1,18 @@
+{{define "content"}}
+<div class="page-hdr">
+  <div class="page-hdr-text">
+    <h1>Network</h1>
+    <p>Which interfaces and addresses dnsmasq listens on</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">System interfaces</div>
+    <span class="card-hint">live from the host</span>
+  </div>
+  <div class="card-body p0" id="iface-table"></div>
+</div>
+
+<div data-sec="network"></div>
+{{end}}

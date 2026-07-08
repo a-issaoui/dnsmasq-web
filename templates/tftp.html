@@ -1,0 +1,22 @@
+{{define "content"}}
+<div class="page-hdr">
+  <div class="page-hdr-text">
+    <h1>TFTP</h1>
+    <p>Built-in read-only TFTP server for network boot</p>
+  </div>
+</div>
+
+<div data-sec="tftp"></div>
+
+<div class="alert alert-info">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+    <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+  </svg>
+  <div>
+    <strong>Netboot in three steps</strong>
+    <p>1&#41; Enable TFTP and set a root directory here. 2&#41; Point clients at a boot file under
+      <em>DHCP → Boot / PXE</em>. 3&#41; Watch transfers on the Logs page (TFTP transfers are logged
+      automatically).</p>
+  </div>
+</div>
+{{end}}

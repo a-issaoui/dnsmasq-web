@@ -1,0 +1,11 @@
+# build output
+/dnsmasq-web
+
+# IDE / tooling
+.idea/
+.vscode/
+.playwright-mcp/
+
+# misc
+*.log
+*.tmp

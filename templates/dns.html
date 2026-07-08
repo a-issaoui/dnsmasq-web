@@ -1,0 +1,26 @@
+{{define "content"}}
+<div class="page-hdr">
+  <div class="page-hdr-text">
+    <h1>DNS</h1>
+    <p>Resolution, records, forwarding and cache — the full dnsmasq DNS surface</p>
+  </div>
+</div>
+
+<div class="tabs" id="tabs">
+  <button class="tab active" data-tab="upstream">Upstream</button>
+  <button class="tab" data-tab="records">Records</button>
+  <button class="tab" data-tab="domains">Domains &amp; Hosts</button>
+  <button class="tab" data-tab="cache">Cache &amp; TTL</button>
+  <button class="tab" data-tab="dnssec">DNSSEC</button>
+  <button class="tab" data-tab="filtering">Filtering</button>
+  <button class="tab" data-tab="sets">ipset / nftset</button>
+</div>
+
+<div class="tab-pane active" data-pane="upstream"><div data-sec="upstream"></div></div>
+<div class="tab-pane" data-pane="records"><div data-sec="records"></div></div>
+<div class="tab-pane" data-pane="domains"><div data-sec="domains"></div></div>
+<div class="tab-pane" data-pane="cache"><div data-sec="cache"></div></div>
+<div class="tab-pane" data-pane="dnssec"><div data-sec="dnssec"></div></div>
+<div class="tab-pane" data-pane="filtering"><div data-sec="filtering"></div></div>
+<div class="tab-pane" data-pane="sets"><div data-sec="sets"></div></div>
+{{end}}
