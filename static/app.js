@@ -40,6 +40,11 @@
     let data = null;
     try { data = await r.json(); } catch { /* empty body */ }
     if (!r.ok) {
+      if (r.status === 401 && url !== '/api/login') {
+        // session expired or auth just enabled — bounce to the login page
+        location.href = '/login';
+        return new Promise(() => { }); // never resolves; navigation wins
+      }
       const err = new Error((data && data.error) || `Request failed (${r.status})`);
       err.status = r.status;
       throw err;
@@ -1978,6 +1983,11 @@
     const sb = $('#sidebar');
     $('#mob-btn').addEventListener('click', () => sb.classList.toggle('open'));
     $('#sb-scrim').addEventListener('click', () => sb.classList.remove('open'));
+    // sign out (button only exists when auth is enabled)
+    $('#logout-btn')?.addEventListener('click', async () => {
+      await api('POST', '/api/logout').catch(() => { });
+      location.href = '/login';
+    });
     // apply bar restart + dismiss
     $('[data-action="svc-restart-apply"]').addEventListener('click', b => guarded(b, async () => {
       const d = await api('POST', '/api/service/restart');

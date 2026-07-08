@@ -464,6 +464,23 @@ a:hover { text-decoration: underline; }
   text-overflow: ellipsis;
 }
 
+/* sign-out (only rendered when auth is enabled) */
+.sb-logout {
+  margin-left: auto;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  color: var(--text3);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+}
+.sb-logout:hover { color: var(--red); border-color: var(--red); }
+
 /* ─── MCP integration strip (dashboard) ────────────────────────────────── */
 .mcp-strip {
   position: relative;

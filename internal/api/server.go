@@ -28,6 +28,8 @@ type Config struct {
 	Port          string
 	TemplateDir   string
 	StaticDir     string
+	AuthPassword  string // non-empty enables session auth
+	APIToken      string // non-empty enables Authorization: Bearer for MCP/scripting
 }
 
 type Server struct {
@@ -36,6 +38,7 @@ type Server struct {
 	svc    *service.Manager
 	hub    *Hub
 	mcp    *mcpTracker
+	auth   *authManager
 
 	confMu  sync.Mutex // serialises all config mutations
 	funcMap template.FuncMap
@@ -48,6 +51,7 @@ func NewServer(cfg *Config) (*Server, error) {
 		svc:    service.New("dnsmasq"),
 		hub:    NewHub(),
 		mcp:    newMCPTracker(),
+		auth:   newAuthManager(cfg.AuthPassword, cfg.APIToken),
 	}
 	s.funcMap = template.FuncMap{
 		"formatTime":  func(t time.Time) string { return t.Format("Jan 02 15:04") },
@@ -148,6 +152,11 @@ func (s *Server) SetupRoutes() http.Handler {
 	// Realtime
 	mux.HandleFunc("GET /api/events", s.apiEvents)
 
+	// Auth (no-ops unless AUTH_PASSWORD is set)
+	mux.HandleFunc("GET /login", s.pageLogin)
+	mux.HandleFunc("POST /api/login", s.apiLogin)
+	mux.HandleFunc("POST /api/logout", s.apiLogout)
+
 	return s.withMiddleware(mux)
 }
 
@@ -156,6 +165,12 @@ func (s *Server) withMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+
+		// Authentication comes first: unauthenticated MCP calls must not
+		// reach handlers or pollute the activity feed.
+		if !s.requireAuth(w, r) {
+			return
+		}
 
 		// MCP-originated requests carry X-MCP-Client. Track them for the MCP
 		// page, and enforce the read-only kill-switch on writes. The switch
@@ -189,11 +204,12 @@ func (s *Server) withMiddleware(next http.Handler) http.Handler {
 // ─── Templates ────────────────────────────────────────────────────────────
 
 type PageData struct {
-	Title    string
-	Page     string
-	Version  string
-	ConfPath string
-	Status   *dnsmasq.ServiceStatus
+	Title       string
+	Page        string
+	Version     string
+	ConfPath    string
+	AuthEnabled bool
+	Status      *dnsmasq.ServiceStatus
 }
 
 func (s *Server) loadPage(page string) (*template.Template, error) {
@@ -210,6 +226,15 @@ func (s *Server) loadPage(page string) (*template.Template, error) {
 	return t, nil
 }
 
+// loadTemplate parses a single standalone template (no base.html shell).
+func (s *Server) loadTemplate(name string) (*template.Template, error) {
+	data, err := os.ReadFile(filepath.Join(s.cfg.TemplateDir, name))
+	if err != nil {
+		return nil, err
+	}
+	return template.New(name).Funcs(s.funcMap).Parse(string(data))
+}
+
 func (s *Server) renderPage(w http.ResponseWriter, page, title, id string) {
 	t, err := s.loadPage(page)
 	if err != nil {
@@ -220,9 +245,10 @@ func (s *Server) renderPage(w http.ResponseWriter, page, title, id string) {
 	status, _ := s.svc.Status()
 	data := PageData{
 		Title: title, Page: id,
-		Version:  s.svc.Version(),
-		ConfPath: s.cfg.DnsmasqConf,
-		Status:   status,
+		Version:     s.svc.Version(),
+		ConfPath:    s.cfg.DnsmasqConf,
+		AuthEnabled: s.auth.enabled,
+		Status:      status,
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := t.ExecuteTemplate(w, "base.html", data); err != nil {

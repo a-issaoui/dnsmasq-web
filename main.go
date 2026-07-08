@@ -22,6 +22,8 @@ func main() {
 		Port:          getEnv("PORT", "8053"),
 		TemplateDir:   getEnv("TEMPLATE_DIR", "./templates"),
 		StaticDir:     getEnv("STATIC_DIR", "./static"),
+		AuthPassword:  os.Getenv("AUTH_PASSWORD"), // non-empty → login required
+		APIToken:      os.Getenv("API_TOKEN"),     // non-empty → Bearer auth for MCP/scripts
 	}
 
 	srv, err := api.NewServer(conf)

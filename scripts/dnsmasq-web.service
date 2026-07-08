@@ -11,14 +11,21 @@ WorkingDirectory=/opt/dnsmasq-web
 ExecStart=/opt/dnsmasq-web/dnsmasq-web
 
 # ── Configuration ────────────────────────────────────────────────────
-# HOST=127.0.0.1 keeps the console local-only (recommended: there is no
-# built-in authentication). Set HOST= (empty) to listen on all interfaces
-# behind a firewall or reverse proxy.
+# HOST=127.0.0.1 keeps the console local-only. Set HOST= (empty) to listen
+# on all interfaces — enable AUTH_PASSWORD below (or put an authenticating
+# reverse proxy in front) before you do.
 Environment=HOST=127.0.0.1
 Environment=PORT=8053
 Environment=DNSMASQ_CONF=/etc/dnsmasq.conf
 Environment=DNSMASQ_LEASES=/var/lib/dnsmasq/dnsmasq.leases
 Environment=BACKUP_DIR=/var/backups/dnsmasq-web
+
+# Optional login. Set AUTH_PASSWORD to require a sign-in for the console;
+# set API_TOKEN so non-browser clients (the MCP server, curl) can use
+# `Authorization: Bearer $API_TOKEN`. Enable BOTH if an AI agent should
+# keep working after auth is turned on.
+#Environment=AUTH_PASSWORD=change-me
+#Environment=API_TOKEN=generate-a-long-random-string
 
 Restart=on-failure
 RestartSec=3
