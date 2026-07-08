@@ -133,9 +133,12 @@ stop_dnsmasq() {
 }
 
 reload_dnsmasq() {
-    echo "🔄 Reloading dnsmasq configuration..."
+    echo "🔄 Reloading dnsmasq (SIGHUP)..."
     if systemctl is-active --quiet dnsmasq; then
-        systemctl reload dnsmasq || systemctl restart dnsmasq
+        # `systemctl reload` needs an ExecReload= the stock unit doesn't have,
+        # and its fallback would be a full restart. kill -s HUP is the real
+        # thing: re-reads hosts/leases without dropping the daemon.
+        systemctl kill -s HUP dnsmasq
     else
         echo "dnsmasq is not running, starting it..."
         start_dnsmasq
