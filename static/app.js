@@ -967,6 +967,9 @@
       const ev = JSON.parse(e.data);
       if (S.page === 'index') appendActivity(ev, 'dhcp');
     });
+    es.addEventListener('mcp', e => {
+      if (S.page === 'mcp') renderMCP(JSON.parse(e.data));
+    });
   }
 
   /* ── rerender orchestration ────────────────────────────────────────── */
@@ -1847,10 +1850,84 @@
     }));
   }
 
+  /* ── MCP page ──────────────────────────────────────────────────────── */
+  function mcpAgo(iso) {
+    if (!iso) return 'never';
+    const d = (Date.now() - new Date(iso).getTime()) / 1000;
+    if (d < 5) return 'just now';
+    if (d < 60) return Math.floor(d) + 's ago';
+    if (d < 3600) return Math.floor(d / 60) + 'm ago';
+    if (d < 86400) return Math.floor(d / 3600) + 'h ago';
+    return Math.floor(d / 86400) + 'd ago';
+  }
+
+  async function renderMCP(data) {
+    const st = data || await api('GET', '/api/mcp/status').catch(() => null);
+    if (!st) return;
+
+    const conn = $('#mcp-conn');
+    if (conn) {
+      conn.className = 'status-chip ' + (st.connected ? 'green' : 'gray');
+      const label = !st.seen_ever ? 'never connected' : (st.connected ? 'connected' : 'idle');
+      conn.innerHTML = `<span class="chip-dot"></span>${label}`;
+    }
+    const set = (id, v) => { const el = $('#' + id); if (el) el.textContent = v; };
+    set('mcp-client', st.client || 'dnsmasq-web-mcp');
+    set('mcp-state', !st.seen_ever ? 'Never connected' : (st.connected ? 'Active' : 'Idle'));
+    set('mcp-lastseen', mcpAgo(st.last_seen));
+    set('mcp-total', st.total_calls ?? 0);
+    set('mcp-blocked', st.blocked_calls ?? 0);
+
+    const tog = $('#mcp-writes-toggle');
+    if (tog && document.activeElement !== tog) tog.checked = !!st.writes_allowed;
+    const badge = $('#mcp-writes-badge');
+    if (badge) badge.innerHTML = st.writes_allowed
+      ? '<span class="badge badge-green">writable</span>'
+      : '<span class="badge badge-yellow">read-only</span>';
+    const note = $('#mcp-writes-note');
+    if (note) note.textContent = st.writes_allowed
+      ? 'The agent can read and change dnsmasq. Every write is still validated with dnsmasq --test and auto-snapshotted first.'
+      : 'Read-only — the agent can inspect everything, but any write is rejected with 403 until you re-enable it here.';
+
+    const box = $('#mcp-recent'), cnt = $('#mcp-recent-count');
+    if (box) {
+      const rec = st.recent || [];
+      if (!rec.length) {
+        box.innerHTML = '<div class="mcp-empty">No MCP calls yet — connect Claude Code and run a dnsmasq tool.</div>';
+      } else {
+        box.innerHTML = '<div class="mcp-calls">' + rec.map(c => {
+          const m = (c.method || '').toLowerCase();
+          const t = new Date(c.at).toLocaleTimeString('en-GB');
+          return `<div class="mcp-call${c.blocked ? ' blocked' : ''}">`
+            + `<span class="mcp-method ${esc(m)}">${esc(c.method)}</span>`
+            + `<span class="mcp-path">${esc(c.path)}${c.blocked ? ' <span class="badge badge-red">blocked</span>' : ''}</span>`
+            + `<span class="mcp-call-time">${t}</span></div>`;
+        }).join('') + '</div>';
+      }
+      if (cnt) cnt.textContent = rec.length ? `${rec.length} recent` : '';
+    }
+  }
+
+  function initMCP() {
+    const tog = $('#mcp-writes-toggle');
+    if (!tog) return;
+    tog.addEventListener('change', async () => {
+      const allowed = tog.checked;
+      try {
+        const d = await api('PUT', '/api/mcp/writes', { allowed });
+        toast(d.message, allowed ? 'success' : 'info');
+      } catch (e) {
+        toast('Failed: ' + e.message, 'error');
+        tog.checked = !allowed; // revert on failure
+      }
+      renderMCP();
+    });
+  }
+
   /* ── chrome init ───────────────────────────────────────────────────── */
   function initChrome() {
     // active nav
-    const active = { index: 'index', dns: 'dns', dhcp: 'dhcp', tftp: 'tftp', network: 'network', settings: 'settings', config: 'config', logs: 'logs', backups: 'backups' }[S.page];
+    const active = { index: 'index', dns: 'dns', dhcp: 'dhcp', tftp: 'tftp', network: 'network', settings: 'settings', config: 'config', logs: 'logs', backups: 'backups', mcp: 'mcp' }[S.page];
     const nav = $(`[data-nav="${active}"]`);
     if (nav) nav.classList.add('active');
     // clock
@@ -1923,6 +2000,7 @@
       case 'config': initConfigPage(); await renderConfigPage(); break;
       case 'logs': await initLogsPage(); break;
       case 'backups': initBackups(); await renderBackups(); break;
+      case 'mcp': initMCP(); await renderMCP(); break;
     }
     connectSSE();
   }

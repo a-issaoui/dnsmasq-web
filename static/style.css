@@ -1268,3 +1268,58 @@ tr.row-new { animation: rowNew 1.6s var(--ease); }
     transition-duration: .001s !important;
   }
 }
+
+/* ─── MCP page ─────────────────────────────────────────────────────────── */
+.mcp-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.mcp-stat {
+  background: var(--bg1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+}
+.mcp-stat-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text3);
+  margin-bottom: 5px;
+}
+.mcp-stat-val { font-size: 16px; font-weight: 600; color: var(--text); }
+.mcp-note {
+  margin: 14px 0 0;
+  font-size: 12.5px;
+  color: var(--text2);
+  line-height: 1.5;
+}
+.mcp-calls { display: flex; flex-direction: column; }
+.mcp-call {
+  display: grid;
+  grid-template-columns: 62px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 18px;
+  border-bottom: 1px solid var(--line);
+  font-size: 12.5px;
+}
+.mcp-call:last-child { border-bottom: 0; }
+.mcp-call.blocked { background: var(--red-dim); }
+.mcp-method {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  padding: 2px 0;
+  border-radius: var(--r-sm);
+  color: var(--text2);
+  background: var(--bg3);
+}
+.mcp-method.get { color: var(--cyan); background: var(--cyan-dim); }
+.mcp-method.post, .mcp-method.put { color: var(--green); background: var(--green-dim); }
+.mcp-method.delete { color: var(--red); background: var(--red-dim); }
+.mcp-path { font-family: var(--font-mono); color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mcp-call-time { color: var(--text3); font-size: 11.5px; white-space: nowrap; }
+.mcp-empty { padding: 40px 18px; text-align: center; color: var(--text3); font-size: 13px; }

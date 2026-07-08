@@ -35,6 +35,7 @@ type Server struct {
 	writer *dnsmasq.Writer
 	svc    *service.Manager
 	hub    *Hub
+	mcp    *mcpTracker
 
 	confMu  sync.Mutex // serialises all config mutations
 	funcMap template.FuncMap
@@ -46,6 +47,7 @@ func NewServer(cfg *Config) (*Server, error) {
 		writer: dnsmasq.NewWriter(cfg.DnsmasqConf, cfg.BackupDir),
 		svc:    service.New("dnsmasq"),
 		hub:    NewHub(),
+		mcp:    newMCPTracker(),
 	}
 	s.funcMap = template.FuncMap{
 		"formatTime":  func(t time.Time) string { return t.Format("Jan 02 15:04") },
@@ -83,11 +85,12 @@ func (s *Server) SetupRoutes() http.Handler {
 		"/config":   "config.html",
 		"/logs":     "logs.html",
 		"/backups":  "backups.html",
+		"/mcp":      "mcp.html",
 	}
 	titles := map[string]string{
 		"/": "Dashboard", "/dns": "DNS", "/dhcp": "DHCP", "/tftp": "TFTP",
 		"/network": "Network", "/settings": "Settings", "/config": "Config File",
-		"/logs": "Logs", "/backups": "Backups",
+		"/logs": "Logs", "/backups": "Backups", "/mcp": "MCP",
 	}
 	for path, tmpl := range pages {
 		p, t := path, tmpl
@@ -138,17 +141,35 @@ func (s *Server) SetupRoutes() http.Handler {
 	mux.HandleFunc("POST /api/backups/restore", s.apiRestoreBackup)
 	mux.HandleFunc("DELETE /api/backups/{name}", s.apiDeleteBackup)
 
+	// MCP integration (activity + read-only kill-switch)
+	mux.HandleFunc("GET /api/mcp/status", s.apiMCPStatus)
+	mux.HandleFunc("PUT /api/mcp/writes", s.apiMCPSetWrites)
+
 	// Realtime
 	mux.HandleFunc("GET /api/events", s.apiEvents)
 
-	return withMiddleware(mux)
+	return s.withMiddleware(mux)
 }
 
-func withMiddleware(next http.Handler) http.Handler {
+func (s *Server) withMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+
+		// MCP-originated requests carry X-MCP-Client. Track them for the MCP
+		// page, and enforce the read-only kill-switch on writes.
+		if client := r.Header.Get("X-MCP-Client"); client != "" {
+			blocked := isMCPWrite(r) && !s.mcp.writesAllowed()
+			s.mcp.record(client, r.Method, r.URL.Path, blocked)
+			s.hub.Broadcast("mcp", s.mcp.snapshot())
+			if blocked {
+				log.Printf("MCP %s %s — BLOCKED (read-only)", r.Method, r.URL.Path)
+				jsonErr(w, 403, "MCP writes are disabled from the dnsmasq-web console (read-only mode). Re-enable on the MCP page to allow changes.")
+				return
+			}
+		}
+
 		start := time.Now()
 		next.ServeHTTP(w, r)
 		if r.URL.Path != "/api/events" {

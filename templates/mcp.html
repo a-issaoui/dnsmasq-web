@@ -1,0 +1,69 @@
+{{define "content"}}
+<div class="page-hdr">
+  <div class="page-hdr-text">
+    <h1>MCP</h1>
+    <p>An AI agent drives dnsmasq through this console's API via the Model Context Protocol</p>
+  </div>
+  <div class="page-hdr-actions">
+    <span class="status-chip gray" id="mcp-conn"><span class="chip-dot"></span>…</span>
+  </div>
+</div>
+
+<div class="grid-2">
+  <!-- Connection / activity -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Connection</div>
+      <span class="card-hint mono" id="mcp-client">—</span>
+    </div>
+    <div class="card-body">
+      <div class="mcp-stats">
+        <div class="mcp-stat">
+          <div class="mcp-stat-label">Status</div>
+          <div class="mcp-stat-val" id="mcp-state">—</div>
+        </div>
+        <div class="mcp-stat">
+          <div class="mcp-stat-label">Last activity</div>
+          <div class="mcp-stat-val" id="mcp-lastseen">—</div>
+        </div>
+        <div class="mcp-stat">
+          <div class="mcp-stat-label">Total calls</div>
+          <div class="mcp-stat-val mono" id="mcp-total">0</div>
+        </div>
+        <div class="mcp-stat">
+          <div class="mcp-stat-label">Blocked</div>
+          <div class="mcp-stat-val mono" id="mcp-blocked">0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Write access — the kill-switch -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Write access</div>
+      <span id="mcp-writes-badge"></span>
+    </div>
+    <div class="card-body">
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-name">Allow MCP writes</div>
+          <div class="toggle-desc">When off, the agent can read everything but cannot change the config,
+            control the service, or touch backups. Reads are never blocked.</div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="mcp-writes-toggle"><span class="toggle-track"></span></label>
+      </div>
+      <p class="mcp-note" id="mcp-writes-note"></p>
+    </div>
+  </div>
+</div>
+
+<!-- Recent MCP calls -->
+<div class="card fill">
+  <div class="card-header">
+    <div class="card-title">Recent MCP calls</div>
+    <span class="card-hint" id="mcp-recent-count"></span>
+  </div>
+  <div class="card-body p0 scroll-y" id="mcp-recent"></div>
+</div>
+{{end}}

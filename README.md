@@ -35,6 +35,7 @@ automatic backups · Server-Sent-Events realtime · IBM Plex dark NOC theme*
 - [Remote access & security](#remote-access--security)
 - [Realtime architecture](#realtime-architecture)
 - [HTTP API reference](#http-api-reference)
+- [AI control (MCP)](#ai-control-mcp)
 - [Project layout](#project-layout)
 - [Troubleshooting](#troubleshooting)
 - [FAQ](#faq)
@@ -368,6 +369,38 @@ Example — add a static lease from the shell:
 curl -X POST localhost:8053/api/conf/lines \
      -d '{"key":"dhcp-host","value":"aa:bb:cc:dd:ee:ff,192.168.1.50,nas,infinite"}'
 ```
+
+## AI control (MCP)
+
+dnsmasq-web ships with a companion **Model Context Protocol** server, so an AI
+agent (e.g. Claude Code) can drive dnsmasq with the same full coverage as the
+UI — add/edit config (validated + auto-snapshotted), toggle encrypted upstream,
+control the service, run lookups, manage backups. The MCP is a thin wrapper over
+the JSON API above: it holds no privilege of its own, and every write still goes
+through `dnsmasq --test` + a backup, exactly like the UI.
+
+**The MCP page (`/mcp`)** gives you live oversight and a safety switch:
+
+- **Status** — whether an agent is connected, its client id, last activity, and
+  total/blocked call counts.
+- **Recent calls** — a live feed of every MCP request (method + endpoint), with
+  blocked writes flagged.
+- **Write kill-switch** — *Allow MCP writes* toggle. Flip it off and the agent
+  goes **read-only**: it can inspect everything, but any config/service/backup
+  write is rejected with `403` until you re-enable it. Reads are never blocked.
+
+The agent tags every request with an `X-MCP-Client` header, which is how the
+console distinguishes and gates MCP traffic (UI requests are never gated).
+
+```
+GET /api/mcp/status     { client, connected, last_seen, total_calls,
+                          blocked_calls, writes_allowed, recent:[…] }
+PUT /api/mcp/writes      { allowed: bool }     the read-only kill-switch
+```
+
+The MCP server itself lives alongside this project; register it with your MCP
+client (stdio) and point it at the console with `DNSMASQ_WEB_URL` (default
+`http://127.0.0.1:8053`).
 
 ## Project layout
 
