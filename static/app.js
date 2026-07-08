@@ -852,8 +852,17 @@
       tb.innerHTML = `<span class="chip-dot"></span>${running ? 'Online' : 'Offline'}`;
     }
     if (bar) {
-      if (!st.stale_config) sessionStorage.removeItem('applyDismissed');
+      if (!st.stale_config) {
+        sessionStorage.removeItem('applyDismissed');
+        cancelAutoApply();
+      } else if (autoApplyOn()) {
+        scheduleAutoApply();
+      }
       bar.hidden = !st.stale_config || sessionStorage.getItem('applyDismissed') === '1';
+      const msg = $('#apply-bar-msg');
+      if (msg) msg.textContent = autoApplyPending
+        ? 'Applying changes — restarting dnsmasq…'
+        : 'Unapplied changes — dnsmasq reads its config only at startup.';
     }
     if (S.page === 'index') renderDashboard();
     if (S.page === 'settings') renderBootToggle();
@@ -871,6 +880,37 @@
     set('dns', dnsCount, dnsCount > 0);
     set('leases', S.leases.length, S.leases.length > 0);
     set('tftp', 'on', confHas('enable-tftp'));
+  }
+
+  /* ── auto-apply: restart dnsmasq automatically after the last change ── */
+  let autoApplyTimer = null;
+  let autoApplyPending = false;
+  // default ON; the checkbox in the banner persists the choice
+  const autoApplyOn = () => localStorage.getItem('autoApply') !== '0';
+
+  function scheduleAutoApply() {
+    if (!autoApplyOn() || autoApplyPending) return;
+    clearTimeout(autoApplyTimer);
+    // debounce: fires 2.5s after the *last* change, so a burst of edits
+    // results in a single restart
+    autoApplyTimer = setTimeout(async () => {
+      autoApplyPending = true;
+      renderStatus();
+      try {
+        await api('POST', '/api/service/restart');
+        toast('Changes applied — dnsmasq restarted', 'success');
+      } catch (e) {
+        toast('Auto-apply failed: ' + e.message, 'error', 7000);
+      } finally {
+        autoApplyPending = false;
+        autoApplyTimer = null;
+      }
+    }, 2500);
+  }
+
+  function cancelAutoApply() {
+    clearTimeout(autoApplyTimer);
+    autoApplyTimer = null;
   }
 
   function setLive(ok) {
@@ -893,6 +933,7 @@
     });
     es.addEventListener('config', async e => {
       const { rev } = JSON.parse(e.data);
+      if (autoApplyOn() && autoApplyTimer) scheduleAutoApply(); // push the debounce out
       if (S.conf && S.conf.rev === rev) return;
       try { await loadConf(); rerender(); } catch { }
     });
@@ -1595,6 +1636,20 @@
     $('[data-action="apply-dismiss"]').addEventListener('click', () => {
       sessionStorage.setItem('applyDismissed', '1');
       $('#apply-bar').hidden = true;
+    });
+    // auto-apply preference
+    const autoCb = $('#auto-apply-cb');
+    autoCb.checked = autoApplyOn();
+    autoCb.addEventListener('change', () => {
+      localStorage.setItem('autoApply', autoCb.checked ? '1' : '0');
+      if (autoCb.checked && S.status && S.status.stale_config) scheduleAutoApply();
+      else cancelAutoApply();
+      toast('Auto-apply ' + (autoCb.checked ? 'on — changes restart dnsmasq automatically' : 'off'), 'info', 2600);
+    });
+    // a tab waking from background refetches status so it can never show a stale banner
+    document.addEventListener('visibilitychange', async () => {
+      if (document.hidden) return;
+      try { S.status = await api('GET', '/api/service/status'); renderStatus(); } catch { }
     });
   }
 

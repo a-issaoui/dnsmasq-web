@@ -307,7 +307,9 @@ a:hover { text-decoration: underline; }
   animation: slideDown .3s var(--ease);
 }
 .apply-bar-text { display: flex; align-items: center; gap: 9px; }
-.apply-bar-actions { display: flex; align-items: center; gap: 8px; }
+.apply-bar-actions { display: flex; align-items: center; gap: 12px; }
+.apply-auto { color: var(--yellow); font-size: 12px; white-space: nowrap; }
+.apply-auto input { accent-color: var(--yellow); }
 .btn-icon-sm {
   width: 26px; height: 26px;
   border: none;

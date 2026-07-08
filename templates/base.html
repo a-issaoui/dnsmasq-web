@@ -152,10 +152,12 @@
             <line x1="12" y1="8" x2="12" y2="12" />
             <line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
-          <span>Unapplied changes — dnsmasq only reads its config at startup, so restart to apply
-            (reload is not enough).</span>
+          <span id="apply-bar-msg">Unapplied changes — dnsmasq reads its config only at startup.</span>
         </div>
         <div class="apply-bar-actions">
+          <label class="check-inline apply-auto" title="Restart dnsmasq automatically a moment after each change">
+            <input type="checkbox" id="auto-apply-cb"> auto-apply
+          </label>
           <button class="btn btn-sm btn-warning" data-action="svc-restart-apply">Restart now</button>
           <button class="btn-icon btn-icon-sm" data-action="apply-dismiss" title="Hide until the next change"
             aria-label="Dismiss">×</button>
