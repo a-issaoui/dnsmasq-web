@@ -534,6 +534,31 @@ a:hover { text-decoration: underline; }
 }
 @media (max-width: 1020px) { .grid-2 { grid-template-columns: 1fr; } }
 
+/* Card-dense sections lay their directive cards out side by side instead of
+   one long stack; each card keeps its own height (align-items:start). */
+[data-sec="records"],
+[data-sec="dhcp-tags"],
+[data-sec="filtering"],
+[data-sec="sets"],
+[data-sec="dhcp-boot"] {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+[data-sec="records"] > .card,
+[data-sec="dhcp-tags"] > .card,
+[data-sec="filtering"] > .card,
+[data-sec="sets"] > .card,
+[data-sec="dhcp-boot"] > .card { margin-bottom: 0; }
+@media (max-width: 1100px) {
+  [data-sec="records"],
+  [data-sec="dhcp-tags"],
+  [data-sec="filtering"],
+  [data-sec="sets"],
+  [data-sec="dhcp-boot"] { grid-template-columns: 1fr; }
+}
+
 /* ═══ Tables ════════════════════════════════════════════════════════ */
 .tbl-wrap { overflow-x: auto; }
 
